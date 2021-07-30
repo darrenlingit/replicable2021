@@ -1,0 +1,277 @@
+---
+title: "Replication Simulation"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  html_notebook: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r include = FALSE}
+# libraries and other things
+library(PRP)
+library(rstudioapi)
+library(mamba)
+library(data.table)
+library(parallel)
+library(knitr)
+library(pander)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+set.seed(2021)
+```
+
+# Common Ground
+
+We start by generating data using the MAMBA package.
+```{r}
+# simulate data with MAMBA package
+mamba_data <- generate_data_mamba()
+
+# effect sizes and variance
+snpeffect <- mamba_data$betajk
+snpvar <- mamba_data$sjk2
+```
+
+Then we fit the simulated data to the MAMBA model. 
+```{r}
+# fitting simulated MAMBA data to model
+if (file.exists("../data/sim_mamba_mod.rda")) {
+  
+  load(file = "../data/sim_mamba_mod.rda")
+  
+} else {
+  
+  sim_mod<-mamba(betajk = snpeffect, sjk2 = snpvar)
+  save(sim_mod, file = "../data/sim_mamba_mod.rda")
+  
+}
+
+# take values from model
+pprs <- sim_mod$ppr
+effectsize <- sim_mod$mu.hat
+outliers <- sim_mod$outliermat[ppr < 0.5]
+```
+
+For reference, a table of the first ten SNPS and the probabilities of them being replicable is given below.
+```{r echo = FALSE}
+pander(outliers[1:10, ])
+```
+
+The PRP package only looks at one SNP at a time, so for comparison we'll just look at only the first SNP  The posterior-probability-of-replicability (PPR) for the first SNP is `r pprs[1]`.
+
+```{r}
+# fitting with prp library
+post_prp <- posterior_prp(beta = snpeffect[1, ],
+              se = sqrt(snpvar[1, ]))
+
+```
+
+Our posterior predictive replication p-values (posterior PRP) for the first SNP using the PRP package is `r post_prp$pvalue`.
+
+
+\newpage
+# Quantitative/Qualitative Differences
+
+Now we look at a few examples.
+
+## Case 1: Non-Zero Effect Sizes
+In the first case, we use a fake model with non-zero effect sizes containing an extreme outliers.
+
+```{r}
+# high value nonzero effect size
+# fake effect size
+fakesnp1_1 <- c(6, 7, 6, 20)
+fakesnp1_2 <- c(7, 8, 8, 9)
+fakesnp1_3 <- c(7, 6, 7, 8)
+fakesnpeffect1 <- rbind(fakesnp1_1, fakesnp1_2, fakesnp1_3)
+
+
+# fake variance
+fakesnpv1_1 <- c(3, 3, 3, 3)
+fakesnpv1_2 <- c(4, 5, 6, 3)
+fakesnpv1_3 <- c(4, 5, 4, 4)
+fakesnpvar1 <- rbind(fakesnpv1_1, fakesnpv1_2, fakesnpv1_3)
+
+```
+
+
+```{r results = "hide"}
+fakemod1 <-mamba(betajk = fakesnpeffect1,
+                 sjk2 = fakesnpvar1)
+```
+
+The outlier probabilities from MAMBA are given in the table below.
+```{r echo = FALSE}
+pander(fakemod1$outliermat)
+```
+
+First, with the MAMBA model, we can see that the model detected an outlier in the first SNP, given by the PPR value of `r fakemod1$ppr[1]`. 
+
+```{r}
+fakemod1_post_prp <- posterior_prp(beta = fakesnpeffect1[1, ],
+                                   se = sqrt(fakesnpvar1[1, ]))
+```
+
+Using the PRP package, we get a PRP value of `r fakemod1_post_prp$pvalue`.
+
+\newpage
+## Case 2: Normal Distribution, Non-Zero Effect Size SNP
+In the second case, we generate a normal distribution with mean = 0 and standard deviation = 1, with one SNP having a non-zero effect size
+
+```{r}
+# generating normal data
+fakesnp_norm2_1 <- rnorm(10, mean= 10, sd = 2)
+fakesnp_norm2_2 <- rnorm(10, mean= 0, sd = 2)
+fakesnp_norm2_3 <- rnorm(10, mean = 0, sd = 1)
+fakesnpeffect2 <- rbind(fakesnp_norm2_1,
+                        fakesnp_norm2_2,
+                        fakesnp_norm2_3)
+
+fakesnp_norm_var2_1 <- rnorm(10, mean = 2, sd = 0.1)
+fakesnp_norm_var2_2 <- rnorm(10, mean = 1, sd = 0.001)
+fakesnp_norm_var2_3 <- rnorm(10, mean = 1, sd = 0.001)
+fakesnpvar2 <- rbind(fakesnp_norm_var2_1,
+                     fakesnp_norm_var2_2,
+                     fakesnp_norm_var2_3)
+```
+
+```{r results = "hide"}
+fakemod_mamba2 <- mamba(betajk = fakesnpeffect2,
+                        sjk2 = fakesnpvar2)
+```
+
+The outlier probabilities from MAMBA are given in the table below.
+```{r echo = FALSE}
+pander(fakemod_mamba2$outliermat)
+```
+
+The PPR value for the first SNP is given by `r fakemod_mamba2$ppr[1]`
+
+
+```{r}
+norm_prp_mod <- posterior_prp(beta = fakesnpeffect2[3 ],
+                              se = sqrt(fakesnpvar2[3, ]))
+norm_prp_mod$pvalue
+```
+
+In contrast, the PPR value for the same SNP is `r norm_prp_mod$pvalue`. 
+
+\newpage
+## Case 3: Normal Distribution, Zero Effect Size
+
+In the third case, we look at SNPs with zero effect size but with differing concordant signs.
+```{r}
+# generating normal data centered around zero
+fakesnp_norm3_1 <- rnorm(10, mean= 0, sd = 2)
+fakesnp_norm3_2 <- rnorm(10, mean= 0, sd = 1)
+fakesnp_norm3_3 <- rnorm(10, mean = 0, sd = 1)
+fakesnpeffect3 <- rbind(fakesnp_norm3_1,
+                        fakesnp_norm3_2,
+                        fakesnp_norm3_3)
+
+fakesnp_norm_var3_1 <- rnorm(10, mean = 2, sd = 0.1)
+fakesnp_norm_var3_2 <- rnorm(10, mean = 1, sd = 0.1)
+fakesnp_norm_var3_3 <- rnorm(10, mean = 1, sd = 0.001)
+fakesnpvar3 <- rbind(fakesnp_norm_var3_1,
+                     fakesnp_norm_var3_2,
+                     fakesnp_norm_var3_3)
+```
+
+```{r results = "hide"}
+# fitting MAMBA model
+fakemod_norm3 <- mamba(betajk = fakesnpeffect3,
+                       sjk2 = fakesnpvar3)
+```
+
+The outlier probabilities from MAMBA are given in the table below.
+```{r echo = FALSE}
+pander(fakemod_norm3$outliermat)
+
+```
+
+The PPR value for the first SNP is given by `r fakemod_norm3$ppr[1]`.
+
+
+```{r}
+# fitting posterior prp
+norm_prp_mod3 <- posterior_prp(beta = fakesnpeffect3[1, ],
+                               se = sqrt(fakesnpvar3[1, ]))
+```
+
+The posterior PRP value given with these SNPs is `r norm_prp_mod3$pvalue`.
+
+\newpage
+# Different Population Sampling
+
+First we sample from 5000 individuals. We sample at different allele frequencies.
+```{r}
+# allele sampling
+n = 5000
+allele0.01 <- rbinom(n, 2, 0.01)
+allele0.1 <- rbinom(n, 2, 0.1)
+allele0.25 <- rbinom(n, 2, 0.25)
+
+# noise
+epsilon <- rnorm(5000, mean = 0, sd = 0.05)
+```
+
+Using a linear equation, we get our phenotype values.
+```{r}
+beta = 0.005
+y0.01 = (beta * allele0.01) + epsilon
+y0.1 = (beta * allele0.1) + epsilon
+y0.25 = (beta * allele0.25) + epsilon
+```
+
+Finally we fit a linear model to get an effect size estimate.
+```{r}
+lm_model0.01 <- lm(y0.01 ~ allele0.01)
+bhat0.01 <- lm_model0.01$coefficients[2]
+
+lm_model0.1 <- lm(y0.1 ~ allele0.1)
+bhat0.1 <- lm_model0.1$coefficients[2]
+
+lm_model0.25 <- lm(y0.25 ~ allele0.25)
+bhat0.25 <- lm_model0.25$coefficients[2]
+```
+
+The effect size estimates are given in the table below. Our true effect size is `beta`.
+```{r echo = FALSE}
+pander(c(bhat0.01, bhat0.1, bhat0.25))
+```
+
+Using these predictions, we can see how MAMBA and the PRP library behave.
+```{r}
+# list of our (predicted) effect size and variance
+snpeffect <- c(bhat0.01, bhat0.1, bhat0.25)
+fakesnp <- c(bhat0.01, bhat0.1, bhat0.25)
+snpeffect_prp <- rbind(snpeffect, fakesnp)
+snpvar <- c(var(y0.01), var(y0.1), var(y0.25))
+snpvar_prp <- rbind(snpvar, snpvar)
+
+# I doubled the values here because MAMBA seems to need more than one snp for it to work
+```
+
+
+First we fit to MAMBA.
+```{r results = "hide"}
+diff_pop <- mamba(beta = snpeffect_prp,
+                  sjk2 = snpvar_prp)
+```
+
+```{r}
+diff_pop$outliermat
+```
+
+Next we fit to the PRP model.
+
+```{r}
+diff_pop_prp <- posterior_prp(beta = snpeffect,
+                              se = sqrt(snpvar))
+```
+
+Using MAMBA, the PPR is `r diff_pop$ppr[1]`. In contrast, using the PRP library our PRP value is `r diff_pop_prp$pvalue`.
