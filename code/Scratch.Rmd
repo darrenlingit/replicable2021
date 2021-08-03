@@ -1,0 +1,208 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+contain_outlier <- rowSums(out_studies == 0) > 0
+```
+
+```{r}
+prp_pred <- post_prp_data_pval < 0.05
+ppr_pred <- pprs < 0.05
+```
+
+
+```{r}
+seq(from = 0, to = 1, by = 0.05)
+```
+
+```{r}
+for (i in seq(from = 0, to = 1, by = 0.05)) {
+  ppr_pred <- pprs < 0.05
+  prp_pred <- post_prp_data_pval < 0.05
+  
+}
+```
+
+```{r}
+ppr_tpos <- ((contain_outlier == TRUE) == (ppr_pred == TRUE)) & contain_outlier == TRUE
+ppr_fpos <- ((contain_outlier == TRUE) == (ppr_pred == FALSE)) & contain_outlier == TRUE
+
+
+fpos_count <- length(ppr_fpos[ppr_fpos == TRUE])
+act_neg_count <- length(contain_outlier[contain_outlier == FALSE])
+fpr <- fpos_count/act_neg_count
+
+
+
+tpos_count <- length(ppr_tpos[ppr_tpos == TRUE])
+act_pos_count <- length(contain_outlier[contain_outlier == TRUE])
+tpr <- tpos_count/act_pos_count
+
+```
+
+```{r}
+true_false_pos_rate <- function(actual, pred) {
+  # true and false positives
+  tpos <- (actual == pred) & (actual == TRUE)
+  fpos <- ((actual == FALSE) == pred) & (actual == FALSE)
+  
+  # false positive rate
+  fpos_count <- length(fpos[fpos == TRUE])
+  act_neg_count <- length(actual[actual == FALSE])
+  fpr <- fpos_count/act_neg_count
+  
+  
+  # true positive rate
+  tpos_count <- length(tpos[tpos == TRUE])
+  act_pos_count <- length(actual[actual == TRUE])
+  tpr <- tpos_count/act_pos_count
+  return(c(fpr, tpr))
+}
+```
+
+
+```{r}
+prp_rates <- list()
+prp_rates <- rbind(prp_rates, true_false_pos_rate(contain_outlier, ppr_pred))
+
+ppr_rates <- list()
+ppr_rates <- rbind(ppr_rates, true_false_pos_rate(contain_outlier, prp_pred))
+
+```
+
+```{r}
+mamba_ppr_rates <- list()
+
+prp_rates <- list()
+
+
+for (cutoff in seq(from = 0, to = 1, by = 0.0005)) {
+  mamba_ppr_pred <- pprs < cutoff
+  prp_pred <- post_prp_data_pval < cutoff
+  
+  
+  
+  mamba_ppr_rates <- rbind(mamba_ppr_rates,
+                     true_false_pos_rate(contain_outlier, mamba_ppr_pred))
+  
+  
+  prp_rates <- rbind(prp_rates, true_false_pos_rate(contain_outlier, prp_pred))
+}
+```
+
+Trying at 0.75 nonoutliers.
+```{r}
+# set.seed(2021)
+# mamba_data_p75 <- generate_data_mamba(lambda = 0.75)
+# save(mamba_data_p75, file = "../data/mamba_data_p75.rda")
+# 
+# snpeffect_p75 <- mamba_data_p75$betajk
+# snpvar_p75 <- mamba_data_p75$sjk2
+# sim_mod_p75 <- mamba(betajk = snpeffect_p75, sjk2 = snpvar_p75)
+# save(sim_mod_p75, file = "../data/sim_mamba_mod_p75.rda")
+```
+
+
+```{r}
+
+out_studies_p75 <- mamba_data_p75$Ojk
+contain_outlier_p75 <- rowSums(out_studies_p75 == 0) > 0
+
+mamba_ppr_rates <- list()
+
+#prp_rates <- list()
+
+for (cutoff in seq(from = 0, to = 1, by = 0.0005)) {
+  mamba_ppr_pred <- sim_mod_p75$ppr < cutoff
+  #prp_pred <- post_prp_data_pval < cutoff
+  
+  
+  
+  #prp_rates <- rbind(ppr_rates, true_false_pos_rate(contain_outlier_p75, prp_pred))
+  mamba_ppr_rates <- rbind(mamba_ppr_rates,
+                           true_false_pos_rate(contain_outlier, mamba_ppr_pred))
+  
+  
+  
+}
+mamba_ppr_rates
+```
+
+Now trying at 0.9 nonoutlier
+```{r}
+# set.seed(2021)
+# mamba_data_p90 <- generate_data_mamba(lambda = 0.9)
+# save(mamba_data_p90, file = "../data/mamba_data_p90.rda")
+# 
+# snpeffect_p90 <- mamba_data_p90$betajk
+# snpvar_p90 <- mamba_data_p90$sjk2
+# sim_mod_p90 <- mamba(betajk = snpeffect_p90, sjk2 = snpvar_p90)
+# save(sim_mod_p90, file = "../data/sim_mamba_mod_p90.rda")
+```
+
+
+```{r}
+
+out_studies_p90 <- mamba_data_p90$Ojk
+contain_outlier_p90 <- rowSums(out_studies_p90 == 0) > 0
+
+mamba_ppr_rates <- list()
+
+#prp_rates <- list()
+
+for (cutoff in seq(from = 0, to = 1, by = 0.0005)) {
+  mamba_ppr_pred <- sim_mod_p90$ppr < cutoff
+  #prp_pred <- post_prp_data_pval < cutoff
+  
+  
+  
+  mamba_ppr_rates <- rbind(mamba_ppr_rates,
+                           true_false_pos_rate(contain_outlier_p90, mamba_ppr_pred))
+  #prp_rates <- rbind(prp_rates, true_false_pos_rate(contain_outlier, ppr_pred))
+  
+  
+  
+}
+mamba_ppr_rates
+```
+
+Testing to fix problem with rates
+```{r}
+
+# true and false positives
+tpos <- (contain_outlier_p90 == mamba_ppr_pred) & (contain_outlier_p90 == TRUE)
+fpos <- ((contain_outlier_p90 == FALSE) == mamba_ppr_pred) & (contain_outlier_p90 == FALSE)
+
+# false positive rate
+fpos_count <- sum(fpos)
+act_neg_count <- sum(contain_outlier_p90 == FALSE)
+fpr <- fpos_count/act_neg_count
+
+
+# true positive rate
+tpos_count <- length(tpos[tpos == TRUE])
+act_pos_count <- length(contain_outlier_p90[contain_outlier_p90 == TRUE])
+tpr <- tpos_count/act_pos_count
+
+
+```
+
+
+```{r}
+load(file = "../data/post_prp_data_pval_p90.rda")
+
+```
+
+
+```{r}
+true_false_pos_rate()
+```
+
