@@ -1,11 +1,13 @@
 ---
 title: "R Notebook"
-output: html_notebook
-editor_options: 
+output:
+  html_notebook: default
+  pdf_document: default
+editor_options:
   chunk_output_type: inline
 ---  
 
-```{r}
+```{r include = FALSE}
 library(PRP)
 library(rstudioapi)
 library(mamba)
@@ -21,7 +23,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 set.seed(2021)
 ```
 
-Some functions to determine our true positive rates and false positive rates.
+# Functions
 ```{r}
 true_false_pos_rate <- function(out_studies, pred) {
   
@@ -79,9 +81,77 @@ roc_rates <- function(contain_outlier, # actual outliers
 }
 ```
 
-# 0.9 nonoutlier rate
+```{r}
+# function for graphing ROC
+plot_point <- function(data,
+                       title = "") {
+  
+  mamba_df <- as.data.frame(data)
+  x <- seq(from = 0, to = 1, by = 0.05)
+  fake_df <-data.frame(x)
+  
+  ggplot(data = mamba_df,
+         aes(x = as.numeric(mamba_df[, 1]),
+             y = as.numeric(mamba_df[, 2]))) +
+    geom_point() +
+    ggtitle(title) +
+    xlab("False Positive Rate") +
+    ylab("True Positive Rate") +
+    stat_function(fun = function(x) {
+      x
+    })
+  
+}
+```
 
-Looking at p90
+\newpage
+# 0.975 Nonoutlier Rate
+
+Here, we look at the case where 0.975 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers" (quoted from the MAMBA documentation). 
+```{r}
+load(file = "../data/post_prp_data_pval.rda")
+load(file = "../data/sim_mamba_mod.rda")
+load(file = "../data/mamba_data.rda")
+
+p98_outliers <- mamba_data$Ojk
+p98_mamba_ppr <- sim_mod$ppr
+p98_prp <- post_prp_data_pval
+```
+
+```{r}
+p98_rates <- roc_rates(contain_outlier = p98_outliers,
+                       mamba_ppr_val = p98_mamba_ppr,
+                       prp_val = p98_prp,
+                       interval = 0.0005)
+```
+
+
+```{r}
+plot_point(p98_rates$mamba_ppr_rates,
+           title = "MAMBA ROC Curve, 0.975 Nonoutlier Rate")
+```
+
+
+```{r}
+plot_point(p98_rates$prp_rates,
+           title = "PRP ROC Curve, 0.975 Nonoutlier Rate")
+
+```
+
+```{r}
+x <- seq(from = 0, to = 1, by = 0.05)
+fake_df <-data.frame(x)
+ggplot(fake_df, aes(x)) +
+  stat_function(fun = function(x) {
+    x
+  })
+```
+
+
+\newpage
+# 0.9 Nonoutlier Rate
+
+Here, we look at the case where 0.9 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers."
 ```{r}
 load(file = "../data/post_prp_data_pval_p90.rda")
 load(file = "../data/sim_mamba_mod_p90.rda")
@@ -99,17 +169,20 @@ p90_rates <- roc_rates(contain_outlier = p90_outliers,
                        interval = 0.0005)
 ```
 
-ROC Plots
-```{r}
-plot(p90_rates$mamba_ppr_rates)
-```
 
 ```{r}
-plot(p90_rates$prp_rates)
+plot_point(p90_rates$mamba_ppr_rates,
+           title = "MAMBA ROC Curve, 0.9 Nonoutlier Rate")
 ```
 
-# 0.75 nonoutlier rate
-Looking at p75
+
+```{r}
+plot_point(p90_rates$prp_rates,
+           title = "PRP ROC Curve, 0.9 Nonoutlier Rate")
+```
+\newpage
+# 0.75 Nonoutlier Rate
+Here, we look at the case where 0.75 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
 ```{r}
 load(file = "../data/post_prp_data_pval_p75.rda")
 load(file = "../data/sim_mamba_mod_p75.rda")
@@ -127,17 +200,47 @@ p75_rates <- roc_rates(contain_outlier = p75_outliers,
                        interval = 0.0005)
 ```
 
-The ROC plots are:
+
 ```{r}
-plot(p75_rates$mamba_ppr_rates)
+plot_point(p75_rates$mamba_ppr_rates,
+           title = "MAMBA ROC Curve, 0.75 Nonoutlier Rate")
 ```
 
 
 ```{r}
-plot(p75_rates$prp_rates)
+plot_point(p75_rates$prp_rates,
+           title = "PRP ROC Curve, 0.75 Nonoutlier Rate")
+```
+
+\newpage
+# 0.5 Nonoutlier Rate
+
+Finally, we look at the case where 0.5 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
+```{r}
+load(file = "../data/post_prp_data_pval_p50.rda")
+load(file = "../data/sim_mamba_mod_p50.rda")
+load(file = "../data/mamba_data_p50.rda")
+
+p50_outliers <- mamba_data_p50$Ojk
+p50_mamba_ppr <- sim_mod_p50$ppr
+p50_prp <- post_prp_data_pval_p50
 ```
 
 ```{r}
-hist(p75_prp)
+p50_rates <- roc_rates(contain_outlier = p50_outliers,
+                       mamba_ppr_val = p50_mamba_ppr,
+                       prp_val = p50_prp,
+                       interval = 0.0005)
 ```
 
+
+```{r}
+plot_point(p50_rates$mamba_ppr_rates,
+           title = "MAMBA ROC Curve, 0.5 Nonoutlier Rate")
+```
+
+
+```{r}
+plot_point(p50_rates$prp_rates,
+           title = "PRP ROC Curve, 0.5 Nonoutlier Rate")
+```
