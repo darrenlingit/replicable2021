@@ -1,0 +1,171 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+# installing packages
+
+#install_github("ArtemisZhao/PRP/R_src")
+```
+
+```{r}
+library(devtools)
+library(PRP)
+
+set.seed(2021)
+
+# change working directory to folder with current file
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
+
+```{r}
+help(posterior_prp) # function that should be used
+```
+
+
+
+```{r}
+# fake snp testing
+
+# fake snp effects?
+fakesnp1 <- c(-0.0061533708, -0.0058905183, -0.0019861299, -0.00572726100, -0.0005039074, 0.0021900557, 0.0046317806, 0.0048434591, 0.0063650119, 5.417366)
+fakesnp2 <- c(-0.0061533708, -0.0058905183, -0.0019861299, -0.00572726100, -0.0005039074, 0.0021900557, 0.0046317806, 0.0048434591, 0.0063650119, 0.005417366)
+fakesnpeffect <- rbind(fakesnp1, fakesnp2)
+
+# fake variance
+fakesnpv1 <- c(0.00002017298, 0.00002049044, 0.00002049587, 0.00002059371, 0.00002129935, 0.00002165667, 0.00002017298, 0.00002049044, 0.00002049587, 1.2165667)
+fakesnpv2 <- c(0.00002017298, 0.00002049044, 0.00002049587, 0.00002059371, 0.00002129935, 0.00002165667, 0.00002017298, 0.00002049044, 0.00002049587, 0.00002165667)
+fakesnpvar <- rbind(fakesnpv1, fakesnpv2)
+
+```
+
+```{r}
+# fake effect size
+fakesnp1 <- c(-0.0061533708, 0.00002049044, 0.0084, 0.0003)
+fakesnp2 <- c(-0.0061533708, 0.005417366, 0.002, 0.0009)
+fakesnpeffect <- rbind(fakesnp1, fakesnp2)
+
+# fake variance
+fakesnpv1 <- c(0.00002017298, 0.00002049044, 0.008, 0.0003)
+fakesnpv2 <- c(0.00002017298, 0.00002165667, 0.000098, 0.0003)
+fakesnpvar <- rbind(fakesnpv1, fakesnpv2)
+```
+
+
+```{r}
+posterior_prp(beta = fakesnp1, se = fakesnpv1)
+```
+
+
+```{r}
+data("RPP_filtered")
+
+data("mortality")
+
+data("severity")
+
+
+```
+
+```{r}
+posterior_prp(beta = severity$beta, se = severity$se)
+```
+
+```{r}
+# generating normal data
+fakesnp_norm1 <- rnorm(10, mean= 1, sd = 0.5)
+
+fakesnp_norm_var1 <- rnorm(10, mean = 0.5, sd = 0.1)
+
+```
+
+```{r}
+posterior_prp(beta = fakesnp_norm1, se = fakesnp_norm_var1)
+```
+
+
+```{r}
+# trying data from archive paper
+library(PRP)
+# RP:P 
+data("RPP_filtered")
+
+# Cardiovascular disease impact on the COVID-19 mortality
+data("mortality")
+
+# Cardiovascular disease impact on the COVID-19 severity
+data("severity")
+
+rpp_beta <- rbind(RPP_filtered$beta_orig, RPP_filtered$beta_rep)
+rpp_se <- rbind(RPP_filtered$se_orig, RPP_filtered$se_rep)
+
+```
+
+```{r}
+library(PRP)
+library(metafor)
+set.seed(123)
+
+cat("COVID-19 Mortality Data\n\n")
+data("mortality")
+
+yi = mortality$beta
+vi = mortality$se^2
+rst=rma(yi,vi, method="FE")
+erst = regtest(rst)
+
+# posterior PRP 
+
+# default
+cat("Cochran's Q-test\n")
+rst$QEp
+cat("Posterior PRP: Q-quantity\n")
+posterior_prp(beta=mortality$beta, se = mortality$se, test=Q, L=2000)$pvalue
+
+cat("\n")
+# publication bias
+cat("Egger regression for detecting publication bias\n")
+erst$pval
+cat("Posterio PRP: Egger-quantitry\n")
+posterior_prp(beta=mortality$beta, se = mortality$se, test=egger, L=2000)$pvalue
+cat("\n")
+
+
+
+
+cat("\nCOVID-19 Severity Data\n\n")
+data("severity")
+yi = severity$beta
+vi = severity$se^2
+rst=rma(yi,vi, method="FE")
+erst = regtest(rst)
+
+
+
+# default
+cat("Cochran's Q-test\n")
+rst$QEp
+cat("Posterior PRP: Q-quantity\n")
+posterior_prp(beta=severity$beta, se = severity$se, test=Q)$pvalue
+
+cat("\n")
+
+# publication bias
+cat("Egger regression for detecting publication bias\n")
+erst$pval
+cat("Posterio PRP: Egger-quantitry\n")
+posterior_prp(beta=severity$beta, se = severity$se, test=egger)$pvalue
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

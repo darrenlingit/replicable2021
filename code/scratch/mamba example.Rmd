@@ -1,0 +1,137 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(mamba)
+#> Loading required package: TMB
+#> Loading required package: RcppEigen
+library(data.table)
+library(parallel)
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
+
+
+```{r}
+datadir<-system.file("extdata", package="mamba")
+datafiles<-paste0(datadir, "/", grep("study_.*assoc", list.files(datadir),value=T))
+
+```
+
+
+```{r}
+# get idea of dataset
+fread(datafiles[1])[1:5] ### format of example summary statistic files 
+```
+
+
+```{r}
+## holdout the first dataset to assess replicability
+discovery_datasets<-setdiff(datafiles, grep("study_1.assoc", datafiles, value=T))
+exmpl<-make_mamba_summary_files(summary_files=discovery_datasets, 
+                                standardize_beta_and_s2_datasets=TRUE,
+                                beta_name="betaj", s2_name="sj2")
+
+assoc<-exmpl$assoc
+beta<-exmpl$beta
+s2<-exmpl$s2
+#rm(exmpl)
+```
+
+```{r}
+# a loot at assoc
+
+assoc[1:3]
+```
+
+```{r}
+# a look at beta, s2
+beta[1:2]
+s2[1:2]
+```
+
+```{r}
+# snps in more than 4 studies
+assoc<-assoc[k >=4]
+beta<-beta[snp %in% assoc[,SNP]]
+s2<-s2[snp %in% assoc[,SNP]]
+
+fwrite(assoc, file="../test_data/ivw_met_chr14.tsv", sep="\t")
+```
+
+
+```{r}
+# after running plink
+clump_file<-paste0(datadir, "/", "example_chr14.clumped")
+tail(fread(clump_file))
+```
+
+
+```{r}
+mamba_snps <- select_mamba_loci(meta_file="../test_data/ivw_met_chr14.tsv",
+                                clump_file=clump_file)
+
+betajk<-beta[snp %in% mamba_snps[,SNP]]
+sjk2<-s2[snp %in% mamba_snps[,SNP]]
+save(betajk, file = "../test_data/ex_betajk.rda")
+save(sjk2, file = "../test_data/ex_sjk2.rda")
+```
+
+
+```{r}
+# fitting model
+mod<-mamba(betajk=betajk[,-c("chr", "bp", "snp", "ref", "alt"),with=F], 
+           sjk2=sjk2[,-c("chr", "bp", "snp", "ref", "alt"),with=F],
+           snpids=betajk[,snp])
+```
+
+
+```{r}
+# reattach to initial fixed effects model 
+mamba_snps[,ppr:=mod$ppr]
+mamba_snps[,mu_hat:=mod$mu.hat]
+```
+
+
+```{r}
+# look at possible outliers, ppr less than a certain value
+mod$outliermat[ppr < 0.005]
+```
+
+```{r}
+# give outlier studies based on snps
+top_outlier<-melt(mod$outliermat, 
+                  id.vars=c("ppr", "snp"), 
+                  variable.factor=F,
+                  value.name="outlier_prob",
+                  variable.name="outlier_study")[order(-outlier_prob)][,head(.SD,1),by=.(snp)]
+
+mamba_snps<-merge(mamba_snps, top_outlier[,-c("ppr"),with=F], by.x="SNP", by.y="snp",sort=FALSE)
+```
+
+
+
+```{r}
+
+```
+
+```{r}
+p_prp<- posterior_prp(beta = severity$beta,
+                      se = severity$beta)
+```
+
+
+```{r}
+p_prp$pvalue
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

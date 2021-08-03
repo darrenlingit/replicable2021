@@ -1,0 +1,226 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+# first time install
+#install.packages("devtools")
+#library(devtools)
+#install_github("dan11mcguire/mamba")
+```
+
+```{r}
+# libraries
+library(mamba)
+library(parallel)
+set.seed(2021)
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
+
+```{r}
+# simulate data
+d <- generate_data_mamba()
+
+```
+
+```{r}
+# effect sizes and variance
+snpeffect <- d$betajk
+snpvar <- d$sjk2
+```
+
+```{r}
+# fitting the simulated data with mamba
+
+#mod<-mamba(betajk = snpeffect, sjk2 = snpvar) # fit simulated data to model
+#save(mod, file = "../test_data/sim_mamba_mod.rda") # save model to file
+
+load(file = "../test_data/sim_mamba_mod.rda")
+```
+
+```{r}
+pprs <- mod$ppr
+effectsize <- mod$mu.hat
+outliers <- mod$outliermat[ppr < 0.5]
+
+```
+
+```{r}
+# fake snp testing
+
+# fake snp effects
+fakesnp1 <- c(-5, -10, -20, -5, -0.0005039074, 5, 10, 20, 5, 5.417366)
+fakesnp2 <- c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+fakesnpeffect <- rbind(fakesnp1, fakesnp2)
+
+# fake variance
+fakesnpv1 <- c(0.00002017298, 0.00002049044, 0.00002049587, 0.00002059371, 0.00002129935, 0.00002165667, 0.00002017298, 0.00002049044, 0.00002049587, 1.2165667)
+fakesnpv2 <- c(0.00002017298, 0.00002049044, 0.00002049587, 0.00002059371, 0.00002129935, 0.00002165667, 0.00002017298, 0.00002049044, 0.00002049587, 0.00002165667)
+fakesnpvar <- rbind(fakesnpv1, fakesnpv2)
+```
+
+```{r}
+
+#snp 1 of object 10 has high variance, should be seen as an outlier
+fakemod <- mamba(betajk = fakesnpeffect, sjk2 = fakesnpvar)
+```
+
+```{r}
+fakemod$outliermat
+```
+
+```{r}
+fakesnp1 <- c(-0.0061533708, -0.0058905183, -0.0019861299, -0.0572726100, -0.0005039074, 0.0021900557, 0.0046317806, 0.0048434591, 0.0063650119, 5.417366)
+
+fakesnpeffect2 <- rbind(snpeffect, fakesnp1)
+
+fakesnpv1 <- c(0.00002017298, 0.00002049044, 0.00002049587, 0.00002059371, 0.00002129935, 0.00002165667, 0.00002017298, 0.00002049044, 0.00002049587, 1.2165667)
+
+fakesnpvar2 <- rbind(snpvar, fakesnpv1)
+
+# fitting fake model2
+#fakemod2 <- mamba(betajk = fakesnpeffect2, sjk2 = fakesnpvar2)
+#save(fakemod2, file = "../test_data/fakemod2.rda")
+load(file = "../test_data/fakemod2.rda")
+```
+
+```{r}
+fakemod2$outliermat[50001]
+```
+
+
+```{r}
+# high value nonzero effect size
+# fake effect size
+fakesnp1 <- c(6, 4, 5, 20)
+fakesnp2 <- c(7, 8, 7, 5)
+fakesnp3 <- c(7, 8, 7, 5)
+fakesnpeffect <- rbind(fakesnp1, fakesnp2, fakesnp3)
+#fakesnpeffect <- rbind(fakesnp2, fakesnp3)
+
+# fake variance
+fakesnpv1 <- c(3, 3, 3, 3)
+fakesnpv2 <- c(4, 5, 5, 5)
+fakesnpv3 <- c(4, 5, 5, 5)
+fakesnpvar <- rbind(fakesnpv1, fakesnpv2, fakesnpv3)
+#fakesnpvar <- rbind(fakesnpv2, fakesnpv3)
+```
+
+
+```{r}
+fakemod3 <-mamba(betajk = fakesnpeffect, sjk2 = fakesnpvar)
+fakemod3$outliermat
+```
+
+
+```{r}
+# zero effect size
+
+# fake snp effects?
+fakesnp1 <- c(-0.0061533708, -0.0058905183, -0.0019861299, -0.0572726100, -0.0005039074, 0.0021900557, 0.0046317806, 0.0048434591, 0.0063650119, 0.0417366)
+fakesnp2 <- c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+fakesnpeffect <- rbind(fakesnp1, fakesnp2)
+
+# fake variance
+fakesnpv1 <- c(0.00002017298, 0.00002049044, 0.00002049587, 0.00002059371, 0.00002129935, 0.00002165667, 0.00002017298, 0.00002049044, 0.00002049587, 1.2165667)
+fakesnpv2 <- c(0.00002017298, 0.00002049044, 0.00002049587, 0.00002059371, 0.00002129935, 0.00002165667, 0.00002017298, 0.00002049044, 0.00002049587, 0.00002165667)
+fakesnpvar <- rbind(fakesnpv1, fakesnpv2)
+```
+
+```{r}
+fakemod_norm <- mamba(betajk = fakesnpeffect, sjk2 = fakesnpvar)
+fakemod_norm$outliermat
+```
+
+```{r}
+# generating normal data
+fakesnp_norm1 <- rnorm(10, mean= 10, sd = 2)
+fakesnp_norm2 <- rnorm(10, mean= 0, sd = 2)
+fakesnp_norm3 <- rnorm(10, mean = 0, sd = 1)
+fakesnp_norm <- rbind(fakesnp_norm1, fakesnp_norm2, fakesnp_norm3)
+
+fakesnp_norm_var1 <- rnorm(10, mean = 2, sd = 0.1)
+fakesnp_norm_var2 <- rnorm(10, mean = 1, sd = 0.001)
+fakesnp_norm_var3 <- rnorm(10, mean = 1, sd = 0.001)
+fakesnp_norm_var <- rbind(fakesnp_norm_var1, fakesnp_norm_var2, fakesnp_norm_var3)
+```
+
+```{r}
+fakemod_norm <- mamba(betajk = fakesnp_norm, sjk2 = fakesnp_norm_var)
+fakemod_norm$outliermat
+```
+
+
+```{r}
+library(devtools)
+library(PRP)
+```
+
+```{r}
+fakesnp_norm1 <- c(13.477102, 9.348904, 7.594115, 8.151240, 9.737826, 9.085267, 11.994172, 11.452449)
+fakesnp_norm_var1 <- c(3.181976, 3.253301, 3.069520, 2.930408, 3.065166, 2.761360, 3.002247, 3.011468, 2.867459) 
+```
+
+
+```{r}
+posterior_prp(beta = fakesnp_norm1,
+              se = sqrt(fakesnp_norm_var1))
+
+```
+
+
+```{r}
+# simulate data
+d <- generate_data_mamba()
+```
+
+```{r}
+# separate effect size and variance
+snpeffect <- d$betajk
+snpvar <- d$sjk2
+```
+
+```{r}
+# fakesnp based off normal distribution, nonzero effect
+fakesnp1 <- rnorm(10, mean = 10, sd = 3)
+
+fakesnpeffect2 <- rbind(snpeffect, fakesnp1)
+
+fakesnpv1 <- rnorm(10, mean = 5, sd = 0.5)
+
+fakesnpvar2 <- rbind(snpvar, fakesnpv1)
+
+# fitting fake model2
+#fakemod2 <- mamba(betajk = fakesnpeffect2, sjk2 = fakesnpvar2)
+#save(fakemod2, file = "../test_data/nonzeroeffect_mamba.rda")
+load(file = "../test_data/nonzeroeffect_mamba.rda")
+```
+
+```{r}
+fakemod2$outliermat[50001]
+# results show that snp has low PPR, low replicability probability, despite being from same normal distribution with relatively high standard deviation
+```
+
+
+```{r}
+# severity from other prp, doesn't work without prp package so ignore
+severity_mod <- mamba(betajk = severity$beta, sjk2 = severity$se)
+
+```
+
+```{r}
+severity_mod$outliermat
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
