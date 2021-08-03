@@ -1,12 +1,13 @@
 ---
 title: "R Notebook"
 output:
+  html_document:
+    df_print: paged
   pdf_document: default
   html_notebook: default
-editor_options: 
+editor_options:
   chunk_output_type: console
 ---
-
 
 ```{r include = FALSE}
 # libraries and other things
@@ -187,11 +188,11 @@ ggplot(data = as.data.frame(nonout_prp), aes(nonout_prp)) +
 ### Different Population Sampling
 
 
-We sample from 5000 individuals. For each "study," we sample at different allele frequencies.
+We sample from 5000 individuals. For each "study," we sample at different allele frequencies (0.01, 0.1, and 0.25).
 ```{r}
 # allele sampling
 n = 5000
-allele0.01 <- rbinom(n, 2, 0.01)
+allele0.01 <- rbinom(n, 2, 0.01) 
 allele0.1 <- rbinom(n, 2, 0.1)
 allele0.25 <- rbinom(n, 2, 0.25)
 
@@ -264,3 +265,4 @@ diff_pop_prp <- posterior_prp(beta = snpeffect,
 diff_pop_prp$pvalue
 ```
 
+Using MAMBA, the PPR is `r diff_pop$ppr[1]`. The p-value given by the PRP package is `r diff_pop_prp$pvalue`.
