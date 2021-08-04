@@ -90,7 +90,7 @@ mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
   print("Now applying posterior_prp function.")
   post_prp_data = t(mapply(posterior_prp,
                            beta = list_eff,
-                           se = list_eff))
+                           se = list_se))
   
   post_prp_data <- as.data.frame(post_prp_data)
   
@@ -110,4 +110,4 @@ mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
 }
 
 # an example of the function
-#mamba_data_ppr_and_prp(noutlier_rate = 0.1)
+mamba_data_ppr_and_prp(noutlier_rate = 0.975)
