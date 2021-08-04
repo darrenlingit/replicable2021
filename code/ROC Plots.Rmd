@@ -1,8 +1,8 @@
 ---
 title: "R Notebook"
 output:
-  html_notebook: default
   pdf_document: default
+  html_notebook: default
 editor_options:
   chunk_output_type: inline
 ---  
@@ -25,10 +25,10 @@ set.seed(2021)
 
 # Functions
 ```{r}
-true_false_pos_rate <- function(out_studies, pred) {
+true_false_pos_rate <- function(out_studies, pred, n_out_thres = 1) {
   
   # truth, SNP that actually contains outliers
-  actual <- rowSums(out_studies == 0) > 0
+  actual <- rowSums(out_studies == 0) >= n_out_thres
   
   # true and false positives
   tpos <- (actual == pred) & (actual == TRUE)
@@ -52,7 +52,8 @@ true_false_pos_rate <- function(out_studies, pred) {
 roc_rates <- function(contain_outlier, # actual outliers
                       mamba_ppr_val, # vector of mamba ppr values
                       prp_val, # vector of prp values
-                      interval = 0.05) {
+                      interval = 0.05,
+                      out_thres = 1) {
   
   mamba_ppr_rates <- list()
   prp_rates <- list()
@@ -68,12 +69,14 @@ roc_rates <- function(contain_outlier, # actual outliers
     
     mamba_ppr_rates <- rbind(mamba_ppr_rates,
                              true_false_pos_rate(contain_outlier,
-                                                 mamba_ppr_pred))
+                                                 mamba_ppr_pred,
+                                                 n_out_thres = out_thres))
     
     
     prp_rates <- rbind(prp_rates,
                        true_false_pos_rate(contain_outlier,
-                                           prp_pred))
+                                           prp_pred,
+                                           n_out_thres = out_thres))
   }
   
   rates_list <- list("mamba_ppr_rates" = mamba_ppr_rates, "prp_rates" = prp_rates)
@@ -122,7 +125,8 @@ p98_prp <- post_prp_data_pval
 p98_rates <- roc_rates(contain_outlier = p98_outliers,
                        mamba_ppr_val = p98_mamba_ppr,
                        prp_val = p98_prp,
-                       interval = 0.0005)
+                       interval = 0.0005,
+                       out_thres = 1)
 ```
 
 
@@ -137,16 +141,6 @@ plot_point(p98_rates$prp_rates,
            title = "PRP ROC Curve, 0.975 Nonoutlier Rate")
 
 ```
-
-```{r}
-x <- seq(from = 0, to = 1, by = 0.05)
-fake_df <-data.frame(x)
-ggplot(fake_df, aes(x)) +
-  stat_function(fun = function(x) {
-    x
-  })
-```
-
 
 \newpage
 # 0.9 Nonoutlier Rate
@@ -215,7 +209,7 @@ plot_point(p75_rates$prp_rates,
 \newpage
 # 0.5 Nonoutlier Rate
 
-Finally, we look at the case where 0.5 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
+We look at the case where 0.5 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
 ```{r}
 load(file = "../data/post_prp_data_pval_p50.rda")
 load(file = "../data/sim_mamba_mod_p50.rda")
@@ -243,4 +237,38 @@ plot_point(p50_rates$mamba_ppr_rates,
 ```{r}
 plot_point(p50_rates$prp_rates,
            title = "PRP ROC Curve, 0.5 Nonoutlier Rate")
+```
+
+\newpage
+# 0.25 Nonoutlier Rate
+
+We look at the case where 0.25 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
+```{r}
+load(file = "../data/post_prp_data_pval_p25.rda")
+load(file = "../data/sim_mamba_mod_p25.rda")
+load(file = "../data/mamba_data_p25.rda")
+
+p25_outliers <- mamba_data_p25$Ojk
+p25_mamba_ppr <- sim_mod_p25$ppr
+p25_prp <- post_prp_data_pval_p25
+```
+
+```{r}
+p25_rates <- roc_rates(contain_outlier = p25_outliers,
+                       mamba_ppr_val = p25_mamba_ppr,
+                       prp_val = p25_prp,
+                       interval = 0.0005,
+                       out_thres = 3)
+```
+
+
+```{r}
+plot_point(p25_rates$mamba_ppr_rates,
+           title = "MAMBA ROC Curve, 0.25 Nonoutlier Rate")
+```
+
+
+```{r}
+plot_point(p25_rates$prp_rates,
+           title = "PRP ROC Curve, 0.25 Nonoutlier Rate")
 ```
