@@ -5,11 +5,16 @@ library(mamba)
 library(data.table)
 library(parallel)
 
-set.seed(2021)
-
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-create_prp_data <- function(noutlier_rate = 0.975) {
+set.seed(2021)
+
+mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
+  # Generates data from MAMBA package
+  # Input takes an nonoutlier rate, the rate that generated studies are not outliers
+  # Then computes the PPR values from the MAMBA and PRP values from PPR package
+  
+
   # text for names
   text_rate <- gsub("\\.", "", as.character(noutlier_rate*100))
   
@@ -100,8 +105,9 @@ create_prp_data <- function(noutlier_rate = 0.975) {
   # saving functions
   save(post_prp_data, file = post_prp_data_file)
   save(post_prp_data_pval, file = post_prp_data_pval_file)
-  write.csv(post_prp_data_ch, post_prp_data_ch_file, row.names = FALSE)
+  #write.csv(post_prp_data_ch, post_prp_data_ch_file, row.names = FALSE)
   
 }
 
-#create_prp_data(noutlier_rate = 0.1)
+# an example of the function
+#mamba_data_ppr_and_prp(noutlier_rate = 0.1)
