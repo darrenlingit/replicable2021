@@ -244,6 +244,7 @@ plot_point(p50_rates$prp_rates,
 
 We look at the case where 0.25 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
 ```{r}
+# set wd downwards
 load(file = "../data/post_prp_data_pval_p25.rda")
 load(file = "../data/sim_mamba_mod_p25.rda")
 load(file = "../data/mamba_data_p25.rda")

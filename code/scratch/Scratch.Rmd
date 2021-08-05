@@ -282,3 +282,14 @@ tpr <- tpos_count/act_pos_count
 
 ```
 
+
+```{r}
+#ROC example using library
+library(ROCR)
+data(ROCR.simple)
+df <- data.frame(ROCR.simple)
+pred <- prediction(df$predictions, df$labels)
+perf <- performance(pred,"tpr","fpr")
+plot(perf,colorize=TRUE)
+```
+

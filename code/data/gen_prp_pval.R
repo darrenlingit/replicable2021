@@ -7,8 +7,6 @@ library(parallel)
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-set.seed(2021)
-
 mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
   # Generates data from MAMBA package
   # Input takes an nonoutlier rate, the rate that generated studies are not outliers
@@ -18,27 +16,28 @@ mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
   # text for names
   text_rate <- gsub("\\.", "", as.character(noutlier_rate*100))
   
-  # files we need
-  mamba_data_file <- paste("../data/mamba_data_p",
+  # mamba files we need
+  # create if they don't exist
+  mamba_data_file <- paste("mamba_data/mamba_data_p",
                            text_rate,
                            ".rda",
                            sep = "")
-  sim_mamba_mod_file <- paste("../data/sim_mamba_mod_p",
+  sim_mamba_mod_file <- paste("mamba_data/sim_mamba_mod_p",
                               text_rate,
                               ".rda",
                               sep = "")
   
   # files we want to save data/results to
-  post_prp_data_file <- paste("../data/post_prp_data",
+  post_prp_data_file <- paste("prp_data/post_prp_data",
                               text_rate,
                               ".rda",
                               sep = "")
-  post_prp_data_pval_file <- paste("../data/post_prp_data_pval_p",
+  post_prp_data_pval_file <- paste("prp_data/post_prp_data_pval_p",
                                    text_rate,
                                    ".rda",
                                    sep = "")
   
-  post_prp_data_ch_file <- paste("../data/post_prp_data_p",
+  post_prp_data_ch_file <- paste("prp_data/post_prp_data_p",
                                  text_rate,
                                  ".rda",
                                  sep = "")
@@ -110,4 +109,4 @@ mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
 }
 
 # an example of the function
-mamba_data_ppr_and_prp(noutlier_rate = 0.975)
+#mamba_data_ppr_and_prp(noutlier_rate = 0.975)
