@@ -116,7 +116,7 @@ load(file = "data/prp_data/post_prp_data_pval_p975.rda")
 load(file = "data/mamba_data/sim_mamba_mod_p975.rda")
 load(file = "data/mamba_data/mamba_data_p975.rda")
 
-p975_prp <- post_prp_data_pval
+prp_975 <- post_prp_data_pval
 sim_mod_p975 <- sim_mod
 mamba_data_p975 <- mamba_data
 
@@ -127,7 +127,7 @@ mamba_ppr_p975 <- sim_mod_p975$ppr
 ```{r}
 p975_rates <- roc_rates(contain_outlier = outliers_p975,
                        mamba_ppr_val = mamba_ppr_p975,
-                       prp_val = p975_prp,
+                       prp_val = prp_975,
                        interval = 0.0005,
                        out_thres = 1)
 ```
@@ -155,7 +155,7 @@ load(file = "data/mamba_data/sim_mamba_mod_p90.rda")
 load(file = "data/mamba_data/mamba_data_p90.rda")
 
 
-p90_prp <- post_prp_data_pval
+prp_90 <- post_prp_data_pval
 sim_mod_p90 <- sim_mod
 mamba_data_p90 <- mamba_data
 
@@ -166,7 +166,7 @@ mamba_ppr_p90 <- sim_mod_p90$ppr
 ```{r}
 p90_rates <- roc_rates(contain_outlier = outliers_p90,
                        mamba_ppr_val = mamba_ppr_p90,
-                       prp_val = p90_prp,
+                       prp_val = prp_90,
                        interval = 0.0005)
 ```
 
@@ -189,7 +189,7 @@ load(file = "data/prp_data/post_prp_data_pval_p75.rda")
 load(file = "data/mamba_data/sim_mamba_mod_p75.rda")
 load(file = "data/mamba_data/mamba_data_p75.rda")
 
-p75_prp <- post_prp_data_pval
+prp_75 <- post_prp_data_pval
 sim_mod_p75 <- sim_mod
 mamba_data_p75 <- mamba_data
 
@@ -200,7 +200,7 @@ mamba_ppr_p75 <- sim_mod_p75$ppr
 ```{r}
 p75_rates <- roc_rates(contain_outlier = outliers_p75,
                        mamba_ppr_val = mamba_ppr_p75,
-                       prp_val = p75_prp,
+                       prp_val = prp_75,
                        interval = 0.0005)
 ```
 
@@ -225,7 +225,7 @@ load(file = "data/prp_data/post_prp_data_pval_p50.rda")
 load(file = "data/mamba_data/sim_mamba_mod_p50.rda")
 load(file = "data/mamba_data/mamba_data_p50.rda")
 
-p50_prp <- post_prp_data_pval
+prp_50 <- post_prp_data_pval
 sim_mod_p50 <- sim_mod
 mamba_data_p50 <- mamba_data
 
@@ -236,7 +236,7 @@ mamba_ppr_p50 <- sim_mod_p50$ppr
 ```{r}
 p50_rates <- roc_rates(contain_outlier = outliers_p50,
                        mamba_ppr_val = mamba_ppr_p50,
-                       prp_val = p50_prp,
+                       prp_val = prp_50,
                        interval = 0.0005)
 ```
 
@@ -262,7 +262,7 @@ load(file = "data/prp_data/post_prp_data_pval_p25.rda")
 load(file = "data/mamba_data/sim_mamba_mod_p25.rda")
 load(file = "data/mamba_data/mamba_data_p25.rda")
 
-p25_prp <- post_prp_data_pval
+prp_25 <- post_prp_data_pval
 sim_mod_p25 <- sim_mod
 mamba_data_p25 <- mamba_data
 
@@ -273,7 +273,7 @@ mamba_ppr_p25 <- sim_mod_p25$ppr
 ```{r}
 p25_rates <- roc_rates(contain_outlier = outliers_p25,
                        mamba_ppr_val = mamba_ppr_p25,
-                       prp_val = p25_prp,
+                       prp_val = prp_25,
                        interval = 0.0005,
                        out_thres = 3)
 ```

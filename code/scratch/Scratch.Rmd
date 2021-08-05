@@ -293,3 +293,13 @@ perf <- performance(pred,"tpr","fpr")
 plot(perf,colorize=TRUE)
 ```
 
+
+```{r}
+library(ROCR)
+out_labels <- ifelse(rowSums(outliers_p50 == 0) >= 1, 0, 1)
+
+pred <- prediction(p50_prp, out_labels)
+perf <- performance(pred,"tpr","fpr")
+plot(perf,colorize=FALSE)
+abline(a=0, b= 1)
+```
