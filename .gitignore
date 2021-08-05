@@ -2,8 +2,11 @@
 .Rhistory
 .RData
 
-data/
+/data/*
+/main_files/data/mamba_data/*
+/main_files/data/prp_data/*
 
-!data/.gitkeep
-!mamba_data/.gitkeep
-!prp_data/.gitkeep
+
+!/data/.gitkeep
+!/main_files/data/mamba_data/.gitkeep
+!/main_files/code/data/prp_data/.gitkeep
