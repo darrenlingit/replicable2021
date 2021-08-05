@@ -1,5 +1,0 @@
-set.seed(2021)
-library(rstudioapi)
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-source(file = "gen_prp_pval.R")
-mamba_data_ppr_and_prp(noutlier_rate = 0.90)
