@@ -1,5 +1,11 @@
 
 .Rhistory
 .RData
+
 /data/*
+/code/data/mamba_data/*
+/code/data/prp_data/*
+
 !/data/.gitkeep
+!/code/data/mamba_data/.gitkeep
+!/code/data/prp_data/.gitkeep
