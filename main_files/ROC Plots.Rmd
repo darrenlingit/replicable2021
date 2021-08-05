@@ -17,6 +17,7 @@ library(knitr)
 library(pander)
 library(ggplot2)
 library(tidyverse)
+library(ROCR)
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
@@ -24,86 +25,114 @@ set.seed(2021)
 ```
 
 # Functions
-```{r}
-true_false_pos_rate <- function(out_studies, pred, n_out_thres = 1) {
-  
-  # truth, SNP that actually contains outliers
-  actual <- rowSums(out_studies == 0) >= n_out_thres
-  
-  # true and false positives
-  tpos <- (actual == pred) & (actual == TRUE)
-  fpos <- ((actual == FALSE) == pred) & (actual == FALSE)
-  
-  # false positive rate
-  fpos_count <- length(fpos[fpos == TRUE])
-  act_neg_count <- length(actual[actual == FALSE])
-  fpr <- fpos_count/act_neg_count
-  
-  
-  # true positive rate
-  tpos_count <- length(tpos[tpos == TRUE])
-  act_pos_count <- length(actual[actual == TRUE])
-  tpr <- tpos_count/act_pos_count
-  return(c(fpr, tpr))
-}
+```{r include = FALSE}
+# # old function, feel free to ignore
+# true_false_pos_rate <- function(out_studies, pred, n_out_thres = 1) {
+#   
+#   # truth, SNP that actually contains outliers
+#   actual <- rowSums(out_studies == 0) >= n_out_thres
+#   
+#   # true and false positives
+#   tpos <- (actual == pred) & (actual == TRUE)
+#   fpos <- ((actual == FALSE) == pred) & (actual == FALSE)
+#   
+#   # false positive rate
+#   fpos_count <- length(fpos[fpos == TRUE])
+#   act_neg_count <- length(actual[actual == FALSE])
+#   fpr <- fpos_count/act_neg_count
+#   
+#   
+#   # true positive rate
+#   tpos_count <- length(tpos[tpos == TRUE])
+#   act_pos_count <- length(actual[actual == TRUE])
+#   tpr <- tpos_count/act_pos_count
+#   return(c(fpr, tpr))
+# }
+```
+
+```{r include = FALSE}
+# # old function, ignore
+# roc_rates <- function(contain_outlier, # actual outliers
+#                       mamba_ppr_val, # vector of mamba ppr values
+#                       prp_val, # vector of prp values
+#                       interval = 0.05,
+#                       out_thres = 1) {
+#   
+#   mamba_ppr_rates <- list()
+#   prp_rates <- list()
+#   
+#   # iterate through different cutoffs
+#   for (cutoff in seq(from = 0, to = 1, by = interval)) {
+#     
+#     # outlier or not based on cutoff
+#     mamba_ppr_pred <- mamba_ppr_val < cutoff
+#     prp_pred <- prp_val < cutoff
+#     
+#     
+#     
+#     mamba_ppr_rates <- rbind(mamba_ppr_rates,
+#                              true_false_pos_rate(contain_outlier,
+#                                                  mamba_ppr_pred,
+#                                                  n_out_thres = out_thres))
+#     
+#     
+#     prp_rates <- rbind(prp_rates,
+#                        true_false_pos_rate(contain_outlier,
+#                                            prp_pred,
+#                                            n_out_thres = out_thres))
+#   }
+#   
+#   rates_list <- list("mamba_ppr_rates" = mamba_ppr_rates, "prp_rates" = prp_rates)
+#   return(rates_list)
+# }
+```
+
+```{r include = FALSE}
+# # old function, ignore
+# # function for graphing ROC
+# plot_point <- function(data,
+#                        title = "") {
+# 
+#   mamba_df <- as.data.frame(data)
+#   x <- seq(from = 0, to = 1, by = 0.05)
+#   fake_df <-data.frame(x)
+# 
+#   ggplot(data = mamba_df,
+#          aes(x = as.numeric(mamba_df[, 1]),
+#              y = as.numeric(mamba_df[, 2]))) +
+#     geom_point() +
+#     ggtitle(title) +
+#     xlab("False Positive Rate") +
+#     ylab("True Positive Rate") +
+#     stat_function(fun = function(x) {
+#       x
+#     })
+# 
+# }
 ```
 
 ```{r}
-roc_rates <- function(contain_outlier, # actual outliers
-                      mamba_ppr_val, # vector of mamba ppr values
-                      prp_val, # vector of prp values
-                      interval = 0.05,
-                      out_thres = 1) {
+# function to plot ROC curve using ROCR library
+plot_ROC <- function(true_outliers,
+                     pvals,
+                     outlier_cutoff = 1,
+                     clr = TRUE,
+                     ref_line = TRUE,
+                     ...) {
   
-  mamba_ppr_rates <- list()
-  prp_rates <- list()
+  out_labels <- ifelse(rowSums(true_outliers == 0) >= outlier_cutoff, 0, 1)
+  pred_val <- prediction(pvals, out_labels)
+  perf_val <- performance(pred_val,"tpr","fpr")
+  plot(perf_val,
+       colorize = clr,
+       xlim=c(0,1),
+       ylim=c(0,1),
+       ...)
   
-  # iterate through different cutoffs
-  for (cutoff in seq(from = 0, to = 1, by = interval)) {
-    
-    # outlier or not based on cutoff
-    mamba_ppr_pred <- mamba_ppr_val < cutoff
-    prp_pred <- prp_val < cutoff
-    
-    
-    
-    mamba_ppr_rates <- rbind(mamba_ppr_rates,
-                             true_false_pos_rate(contain_outlier,
-                                                 mamba_ppr_pred,
-                                                 n_out_thres = out_thres))
-    
-    
-    prp_rates <- rbind(prp_rates,
-                       true_false_pos_rate(contain_outlier,
-                                           prp_pred,
-                                           n_out_thres = out_thres))
+  if (ref_line == TRUE) {
+    abline(a=0, b= 1)
   }
   
-  rates_list <- list("mamba_ppr_rates" = mamba_ppr_rates, "prp_rates" = prp_rates)
-  return(rates_list)
-}
-```
-
-```{r}
-# function for graphing ROC
-plot_point <- function(data,
-                       title = "") {
-
-  mamba_df <- as.data.frame(data)
-  x <- seq(from = 0, to = 1, by = 0.05)
-  fake_df <-data.frame(x)
-
-  ggplot(data = mamba_df,
-         aes(x = as.numeric(mamba_df[, 1]),
-             y = as.numeric(mamba_df[, 2]))) +
-    geom_point() +
-    ggtitle(title) +
-    xlab("False Positive Rate") +
-    ylab("True Positive Rate") +
-    stat_function(fun = function(x) {
-      x
-    })
-
 }
 ```
 
@@ -124,25 +153,18 @@ outliers_p975 <- mamba_data_p975$Ojk
 mamba_ppr_p975 <- sim_mod_p975$ppr
 ```
 
+First we look at the ROC curve for the MAMBA values at a 0.975 nonoutlier study rate.
 ```{r}
-p975_rates <- roc_rates(contain_outlier = outliers_p975,
-                       mamba_ppr_val = mamba_ppr_p975,
-                       prp_val = prp_975,
-                       interval = 0.0005,
-                       out_thres = 1)
+plot_ROC(outliers_p975,
+         mamba_ppr_p975,
+         main = "MAMBA ROC Curve, 0.975 Nonoutlier Rate")
 ```
 
-
+The PRP curve for the same nonoutlier rate is given below.
 ```{r}
-plot_point(p975_rates$mamba_ppr_rates,
-           title = "MAMBA ROC Curve, 0.975 Nonoutlier Rate")
-```
-
-
-```{r}
-plot_point(p975_rates$prp_rates,
-           title = "PRP ROC Curve, 0.975 Nonoutlier Rate")
-
+plot_ROC(outliers_p975,
+         prp_975,
+         main = "PRP ROC Curve, 0.975 Nonoutlier Rate")
 ```
 
 \newpage
@@ -163,24 +185,20 @@ outliers_p90 <- mamba_data_p90$Ojk
 mamba_ppr_p90 <- sim_mod_p90$ppr
 ```
 
+First we look at the ROC curve for the MAMBA values at a 0.9 nonoutlier study rate.
 ```{r}
-p90_rates <- roc_rates(contain_outlier = outliers_p90,
-                       mamba_ppr_val = mamba_ppr_p90,
-                       prp_val = prp_90,
-                       interval = 0.0005)
+plot_ROC(outliers_p90,
+         mamba_ppr_p90,
+         main = "MAMBA ROC Curve, 0.9 Nonoutlier Rate")
 ```
 
-
+The PRP curve for the same nonoutlier rate is given below.
 ```{r}
-plot_point(p90_rates$mamba_ppr_rates,
-           title = "MAMBA ROC Curve, 0.9 Nonoutlier Rate")
+plot_ROC(outliers_p90,
+         prp_90,
+         main = "PRP ROC Curve, 0.9 Nonoutlier Rate")
 ```
 
-
-```{r}
-plot_point(p90_rates$prp_rates,
-           title = "PRP ROC Curve, 0.9 Nonoutlier Rate")
-```
 \newpage
 # 0.75 Nonoutlier Rate
 Here, we look at the case where 0.75 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
@@ -197,23 +215,18 @@ outliers_p75 <- mamba_data_p75$Ojk
 mamba_ppr_p75 <- sim_mod_p75$ppr
 ```
 
+First we look at the ROC curve for the MAMBA values at a 0.75 nonoutlier study rate.
 ```{r}
-p75_rates <- roc_rates(contain_outlier = outliers_p75,
-                       mamba_ppr_val = mamba_ppr_p75,
-                       prp_val = prp_75,
-                       interval = 0.0005)
+plot_ROC(outliers_p75,
+         mamba_ppr_p75,
+         main = "MAMBA ROC Curve, 0.75 Nonoutlier Rate")
 ```
 
-
+The PRP curve for the same nonoutlier rate is given below.
 ```{r}
-plot_point(p75_rates$mamba_ppr_rates,
-           title = "MAMBA ROC Curve, 0.75 Nonoutlier Rate")
-```
-
-
-```{r}
-plot_point(p75_rates$prp_rates,
-           title = "PRP ROC Curve, 0.75 Nonoutlier Rate")
+plot_ROC(outliers_p75,
+         prp_75,
+         main = "PRP ROC Curve, 0.75 Nonoutlier Rate")
 ```
 
 \newpage
@@ -233,31 +246,26 @@ outliers_p50 <- mamba_data_p50$Ojk
 mamba_ppr_p50 <- sim_mod_p50$ppr
 ```
 
+First we look at the ROC curve for the MAMBA values at a 0.5 nonoutlier study rate.
 ```{r}
-p50_rates <- roc_rates(contain_outlier = outliers_p50,
-                       mamba_ppr_val = mamba_ppr_p50,
-                       prp_val = prp_50,
-                       interval = 0.0005)
+plot_ROC(outliers_p50,
+         mamba_ppr_p50,
+         main = "MAMBA ROC Curve, 0.5 Nonoutlier Rate")
 ```
 
-
+The PRP curve for the same nonoutlier rate is given below.
 ```{r}
-plot_point(p50_rates$mamba_ppr_rates,
-           title = "MAMBA ROC Curve, 0.5 Nonoutlier Rate")
-```
-
-
-```{r}
-plot_point(p50_rates$prp_rates,
-           title = "PRP ROC Curve, 0.5 Nonoutlier Rate")
+plot_ROC(outliers_p50,
+         prp_50,
+         main = "PRP ROC Curve, 0.5 Nonoutlier Rate")
 ```
 
 \newpage
 # 0.25 Nonoutlier Rate
 
-We look at the case where 0.25 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
-```{r}
+Finally, we look at the case where 0.25 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." In this specific case, because every single SNP has at least one outlier, we change the cutoff for the number of outlier studies for the SNP to be considered not replicable.
 
+```{r}
 load(file = "data/prp_data/post_prp_data_pval_p25.rda")
 load(file = "data/mamba_data/sim_mamba_mod_p25.rda")
 load(file = "data/mamba_data/mamba_data_p25.rda")
@@ -270,22 +278,18 @@ outliers_p25 <- mamba_data_p25$Ojk
 mamba_ppr_p25 <- sim_mod_p25$ppr
 ```
 
+First we look at the ROC curve for the MAMBA values at a 0.25 nonoutlier study rate. Here, we changed the number of cutoffs for a SNP to be considered not replicable to 3 studies (out of a total of 10 studies in the simulated data).
 ```{r}
-p25_rates <- roc_rates(contain_outlier = outliers_p25,
-                       mamba_ppr_val = mamba_ppr_p25,
-                       prp_val = prp_25,
-                       interval = 0.0005,
-                       out_thres = 3)
+plot_ROC(outliers_p25,
+         mamba_ppr_p25,
+         outlier_cutoff = 3,
+         main = "MAMBA ROC Curve, 0.25 Nonoutlier Rate")
 ```
 
-
+The PRP curve for the same nonoutlier rate is given below.
 ```{r}
-plot_point(p25_rates$mamba_ppr_rates,
-           title = "MAMBA ROC Curve, 0.25 Nonoutlier Rate")
-```
-
-
-```{r}
-plot_point(p25_rates$prp_rates,
-           title = "PRP ROC Curve, 0.25 Nonoutlier Rate")
+plot_ROC(outliers_p25,
+         prp_25,
+         outlier_cutoff = 3,
+         main = "PRP ROC Curve, 0.25 Nonoutlier Rate")
 ```
