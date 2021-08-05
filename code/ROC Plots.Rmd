@@ -88,11 +88,11 @@ roc_rates <- function(contain_outlier, # actual outliers
 # function for graphing ROC
 plot_point <- function(data,
                        title = "") {
-  
+
   mamba_df <- as.data.frame(data)
   x <- seq(from = 0, to = 1, by = 0.05)
   fake_df <-data.frame(x)
-  
+
   ggplot(data = mamba_df,
          aes(x = as.numeric(mamba_df[, 1]),
              y = as.numeric(mamba_df[, 2]))) +
@@ -103,7 +103,7 @@ plot_point <- function(data,
     stat_function(fun = function(x) {
       x
     })
-  
+
 }
 ```
 
@@ -112,32 +112,35 @@ plot_point <- function(data,
 
 Here, we look at the case where 0.975 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers" (quoted from the MAMBA documentation). 
 ```{r}
-load(file = "../data/post_prp_data_pval.rda")
-load(file = "../data/sim_mamba_mod.rda")
-load(file = "../data/mamba_data.rda")
+load(file = "data/prp_data/post_prp_data_pval_p975.rda")
+load(file = "data/mamba_data/sim_mamba_mod_p975.rda")
+load(file = "data/mamba_data/mamba_data_p975.rda")
 
-p98_outliers <- mamba_data$Ojk
-p98_mamba_ppr <- sim_mod$ppr
-p98_prp <- post_prp_data_pval
+p975_prp <- post_prp_data_pval
+sim_mod_p975 <- sim_mod
+mamba_data_p975 <- mamba_data
+
+outliers_p975 <- mamba_data_p975$Ojk
+mamba_ppr_p975 <- sim_mod_p975$ppr
 ```
 
 ```{r}
-p98_rates <- roc_rates(contain_outlier = p98_outliers,
-                       mamba_ppr_val = p98_mamba_ppr,
-                       prp_val = p98_prp,
+p975_rates <- roc_rates(contain_outlier = outliers_p975,
+                       mamba_ppr_val = mamba_ppr_p975,
+                       prp_val = p975_prp,
                        interval = 0.0005,
                        out_thres = 1)
 ```
 
 
 ```{r}
-plot_point(p98_rates$mamba_ppr_rates,
+plot_point(p975_rates$mamba_ppr_rates,
            title = "MAMBA ROC Curve, 0.975 Nonoutlier Rate")
 ```
 
 
 ```{r}
-plot_point(p98_rates$prp_rates,
+plot_point(p975_rates$prp_rates,
            title = "PRP ROC Curve, 0.975 Nonoutlier Rate")
 
 ```
@@ -147,18 +150,22 @@ plot_point(p98_rates$prp_rates,
 
 Here, we look at the case where 0.9 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers."
 ```{r}
-load(file = "../data/post_prp_data_pval_p90.rda")
-load(file = "../data/sim_mamba_mod_p90.rda")
-load(file = "../data/mamba_data_p90.rda")
+load(file = "data/prp_data/post_prp_data_pval_p90.rda")
+load(file = "data/mamba_data/sim_mamba_mod_p90.rda")
+load(file = "data/mamba_data/mamba_data_p90.rda")
 
-p90_outliers <- mamba_data_p90$Ojk
-p90_mamba_ppr <- sim_mod_p90$ppr
-p90_prp <- post_prp_data_pval_p90
+
+p90_prp <- post_prp_data_pval
+sim_mod_p90 <- sim_mod
+mamba_data_p90 <- mamba_data
+
+outliers_p90 <- mamba_data_p90$Ojk
+mamba_ppr_p90 <- sim_mod_p90$ppr
 ```
 
 ```{r}
-p90_rates <- roc_rates(contain_outlier = p90_outliers,
-                       mamba_ppr_val = p90_mamba_ppr,
+p90_rates <- roc_rates(contain_outlier = outliers_p90,
+                       mamba_ppr_val = mamba_ppr_p90,
                        prp_val = p90_prp,
                        interval = 0.0005)
 ```
@@ -178,18 +185,21 @@ plot_point(p90_rates$prp_rates,
 # 0.75 Nonoutlier Rate
 Here, we look at the case where 0.75 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
 ```{r}
-load(file = "../data/post_prp_data_pval_p75.rda")
-load(file = "../data/sim_mamba_mod_p75.rda")
-load(file = "../data/mamba_data_p75.rda")
+load(file = "data/prp_data/post_prp_data_pval_p75.rda")
+load(file = "data/mamba_data/sim_mamba_mod_p75.rda")
+load(file = "data/mamba_data/mamba_data_p75.rda")
 
-p75_outliers <- mamba_data_p75$Ojk
-p75_mamba_ppr <- sim_mod_p75$ppr
-p75_prp <- post_prp_data_pval_p75
+p75_prp <- post_prp_data_pval
+sim_mod_p75 <- sim_mod
+mamba_data_p75 <- mamba_data
+
+outliers_p75 <- mamba_data_p75$Ojk
+mamba_ppr_p75 <- sim_mod_p75$ppr
 ```
 
 ```{r}
-p75_rates <- roc_rates(contain_outlier = p75_outliers,
-                       mamba_ppr_val = p75_mamba_ppr,
+p75_rates <- roc_rates(contain_outlier = outliers_p75,
+                       mamba_ppr_val = mamba_ppr_p75,
                        prp_val = p75_prp,
                        interval = 0.0005)
 ```
@@ -211,18 +221,21 @@ plot_point(p75_rates$prp_rates,
 
 We look at the case where 0.5 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
 ```{r}
-load(file = "../data/post_prp_data_pval_p50.rda")
-load(file = "../data/sim_mamba_mod_p50.rda")
-load(file = "../data/mamba_data_p50.rda")
+load(file = "data/prp_data/post_prp_data_pval_p50.rda")
+load(file = "data/mamba_data/sim_mamba_mod_p50.rda")
+load(file = "data/mamba_data/mamba_data_p50.rda")
 
-p50_outliers <- mamba_data_p50$Ojk
-p50_mamba_ppr <- sim_mod_p50$ppr
-p50_prp <- post_prp_data_pval_p50
+p50_prp <- post_prp_data_pval
+sim_mod_p50 <- sim_mod
+mamba_data_p50 <- mamba_data
+
+outliers_p50 <- mamba_data_p50$Ojk
+mamba_ppr_p50 <- sim_mod_p50$ppr
 ```
 
 ```{r}
-p50_rates <- roc_rates(contain_outlier = p50_outliers,
-                       mamba_ppr_val = p50_mamba_ppr,
+p50_rates <- roc_rates(contain_outlier = outliers_p50,
+                       mamba_ppr_val = mamba_ppr_p50,
                        prp_val = p50_prp,
                        interval = 0.0005)
 ```
@@ -244,19 +257,22 @@ plot_point(p50_rates$prp_rates,
 
 We look at the case where 0.25 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
 ```{r}
-# set wd downwards
-load(file = "../data/post_prp_data_pval_p25.rda")
-load(file = "../data/sim_mamba_mod_p25.rda")
-load(file = "../data/mamba_data_p25.rda")
 
-p25_outliers <- mamba_data_p25$Ojk
-p25_mamba_ppr <- sim_mod_p25$ppr
-p25_prp <- post_prp_data_pval_p25
+load(file = "data/prp_data/post_prp_data_pval_p25.rda")
+load(file = "data/mamba_data/sim_mamba_mod_p25.rda")
+load(file = "data/mamba_data/mamba_data_p25.rda")
+
+p25_prp <- post_prp_data_pval
+sim_mod_p25 <- sim_mod
+mamba_data_p25 <- mamba_data
+
+outliers_p25 <- mamba_data_p25$Ojk
+mamba_ppr_p25 <- sim_mod_p25$ppr
 ```
 
 ```{r}
-p25_rates <- roc_rates(contain_outlier = p25_outliers,
-                       mamba_ppr_val = p25_mamba_ppr,
+p25_rates <- roc_rates(contain_outlier = outliers_p25,
+                       mamba_ppr_val = mamba_ppr_p25,
                        prp_val = p25_prp,
                        interval = 0.0005,
                        out_thres = 3)
