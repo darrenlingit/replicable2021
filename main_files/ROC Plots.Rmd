@@ -1,8 +1,10 @@
 ---
 title: "R Notebook"
 output:
-  pdf_document: default
+  html_document:
+    df_print: paged
   html_notebook: default
+  pdf_document: default
 editor_options:
   chunk_output_type: inline
 ---  
@@ -25,92 +27,6 @@ set.seed(2021)
 ```
 
 # Functions
-```{r include = FALSE}
-# # old function, feel free to ignore
-# true_false_pos_rate <- function(out_studies, pred, n_out_thres = 1) {
-#   
-#   # truth, SNP that actually contains outliers
-#   actual <- rowSums(out_studies == 0) >= n_out_thres
-#   
-#   # true and false positives
-#   tpos <- (actual == pred) & (actual == TRUE)
-#   fpos <- ((actual == FALSE) == pred) & (actual == FALSE)
-#   
-#   # false positive rate
-#   fpos_count <- length(fpos[fpos == TRUE])
-#   act_neg_count <- length(actual[actual == FALSE])
-#   fpr <- fpos_count/act_neg_count
-#   
-#   
-#   # true positive rate
-#   tpos_count <- length(tpos[tpos == TRUE])
-#   act_pos_count <- length(actual[actual == TRUE])
-#   tpr <- tpos_count/act_pos_count
-#   return(c(fpr, tpr))
-# }
-```
-
-```{r include = FALSE}
-# # old function, ignore
-# roc_rates <- function(contain_outlier, # actual outliers
-#                       mamba_ppr_val, # vector of mamba ppr values
-#                       prp_val, # vector of prp values
-#                       interval = 0.05,
-#                       out_thres = 1) {
-#   
-#   mamba_ppr_rates <- list()
-#   prp_rates <- list()
-#   
-#   # iterate through different cutoffs
-#   for (cutoff in seq(from = 0, to = 1, by = interval)) {
-#     
-#     # outlier or not based on cutoff
-#     mamba_ppr_pred <- mamba_ppr_val < cutoff
-#     prp_pred <- prp_val < cutoff
-#     
-#     
-#     
-#     mamba_ppr_rates <- rbind(mamba_ppr_rates,
-#                              true_false_pos_rate(contain_outlier,
-#                                                  mamba_ppr_pred,
-#                                                  n_out_thres = out_thres))
-#     
-#     
-#     prp_rates <- rbind(prp_rates,
-#                        true_false_pos_rate(contain_outlier,
-#                                            prp_pred,
-#                                            n_out_thres = out_thres))
-#   }
-#   
-#   rates_list <- list("mamba_ppr_rates" = mamba_ppr_rates, "prp_rates" = prp_rates)
-#   return(rates_list)
-# }
-```
-
-```{r include = FALSE}
-# # old function, ignore
-# # function for graphing ROC
-# plot_point <- function(data,
-#                        title = "") {
-# 
-#   mamba_df <- as.data.frame(data)
-#   x <- seq(from = 0, to = 1, by = 0.05)
-#   fake_df <-data.frame(x)
-# 
-#   ggplot(data = mamba_df,
-#          aes(x = as.numeric(mamba_df[, 1]),
-#              y = as.numeric(mamba_df[, 2]))) +
-#     geom_point() +
-#     ggtitle(title) +
-#     xlab("False Positive Rate") +
-#     ylab("True Positive Rate") +
-#     stat_function(fun = function(x) {
-#       x
-#     })
-# 
-# }
-```
-
 ```{r}
 # function to plot ROC curve using ROCR library
 plot_ROC <- function(true_outliers,
@@ -132,6 +48,58 @@ plot_ROC <- function(true_outliers,
   if (ref_line == TRUE) {
     abline(a=0, b= 1)
   }
+  
+}
+```
+
+```{r}
+# function to put ROC curves on same plot
+ROC_compare_plot <- function(true_outlier,
+                             mamba_ppr,
+                             prp,
+                             outlier_cutoff = 1) {
+  
+  
+  pvals <- list(mamba_ppr, prp)
+  
+  out_labels <- ifelse(rowSums(true_outlier == 0) >= outlier_cutoff, 0, 1)
+  out_labels <- rep(list(out_labels), length(pvals))
+  
+  # ROCR can look at multiple ROC curves at same time if they are together as a list
+  pred_val <- prediction(pvals, out_labels)
+  perf_val <- performance(pred_val,"tpr","fpr")
+  
+  
+  plot(perf_val,
+       col = as.list(1:length(pvals)),
+       xlim=c(0,1),
+       ylim=c(0,1))
+  
+  legend(x = "bottomright",
+         legend = c("MAMBA PPR", "PRP"),
+         fill = 1:length(pvals))
+
+}
+
+```
+
+```{r}
+# AUC function
+ROC_AUC <- function(true_outlier,
+                    mamba_ppr,
+                    prp,
+                    outlier_cutoff = 1) {
+  
+  pvals <- list(mamba_ppr, prp)
+  
+  out_labels <- ifelse(rowSums(true_outlier == 0) >= outlier_cutoff, 0, 1)
+  out_labels <- rep(list(out_labels), length(pvals))
+  
+  # ROCR can look at multiple ROC curves at same time if they are together as a list
+  pred_val <- prediction(pvals, out_labels)
+  auc_val <- performance(pred_val, measure = "auc")
+  
+  return(auc_val)
   
 }
 ```
@@ -263,7 +231,7 @@ plot_ROC(outliers_p50,
 \newpage
 # 0.25 Nonoutlier Rate
 
-Finally, we look at the case where 0.25 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." In this specific case, because every single SNP has at least one outlier, we change the cutoff for the number of outlier studies for the SNP to be considered not replicable.
+Finally, we look at the case where 0.25 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." In this specific case, because every single SNP has at least one outlier study, we need change the cutoff for the number of outlier studies for the SNP to be considered not replicable.
 
 ```{r}
 load(file = "data/prp_data/post_prp_data_pval_p25.rda")
@@ -278,7 +246,7 @@ outliers_p25 <- mamba_data_p25$Ojk
 mamba_ppr_p25 <- sim_mod_p25$ppr
 ```
 
-First we look at the ROC curve for the MAMBA values at a 0.25 nonoutlier study rate. Here, we changed the number of cutoffs for a SNP to be considered not replicable to 3 studies (out of a total of 10 studies in the simulated data).
+First we look at the ROC curve for the MAMBA values at a 0.25 nonoutlier study rate. Here, we changed the number of outlier studies cutoff for a SNP to be considered not replicable from one study to three studies (out of a total of ten studies in the simulated data).
 ```{r}
 plot_ROC(outliers_p25,
          mamba_ppr_p25,
@@ -293,3 +261,19 @@ plot_ROC(outliers_p25,
          outlier_cutoff = 3,
          main = "PRP ROC Curve, 0.25 Nonoutlier Rate")
 ```
+
+```{r}
+# AUC
+AUC_p25 <- ROC_AUC(outliers_p25,
+                   mamba_ppr = mamba_ppr_p25,
+                   prp = prp_25,
+                   outlier_cutoff = 3)
+
+mamba_ppr_auc <- AUC_p25@y.values[[1]]
+prp_auc <- AUC_p25@y.values[[2]]
+```
+
+
+
+
+

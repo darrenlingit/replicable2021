@@ -203,3 +203,4 @@ diff_pop_prp$pvalue
 ```
 
 Using MAMBA, the PPR is `r diff_pop$ppr[1]`. The p-value given by the PRP package is `r diff_pop_prp$pvalue`.
+
