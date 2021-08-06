@@ -21,7 +21,7 @@ library(pander)
 library(ggplot2)
 library(tidyverse)
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 set.seed(2021)
 ```
@@ -95,7 +95,6 @@ ggplot(data = as.data.frame(out_prp), aes(out_prp)) +
 ```
 
 
-
 For our SNPs without outliers, the PRP distribution is given in the following histogram.
 
 ```{r}
@@ -123,7 +122,7 @@ ggplot(data = as.data.frame(nonout_prp), aes(nonout_prp)) +
 ```
 
 \newpage
-### Different Population Sampling
+### Different Population Sampling (this hasn't been updated yet from last week)
 
 
 We sample from 5000 individuals. For each "study," we sample at different allele frequencies (0.01, 0.1, and 0.25).
