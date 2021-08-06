@@ -3,10 +3,6 @@
 .RData
 
 /data/*
-/main_files/data/mamba_data/*
-/main_files/data/prp_data/*
+/main_files/data/*/*
 
-
-!/data/.gitkeep
-!/main_files/data/mamba_data/.gitkeep
-!/main_files/data/prp_data/.gitkeep
+!.gitkeep
