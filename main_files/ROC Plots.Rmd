@@ -1,10 +1,10 @@
 ---
 title: "R Notebook"
 output:
+  pdf_document: default
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
-  pdf_document: default
 editor_options:
   chunk_output_type: inline
 ---  
@@ -21,7 +21,7 @@ library(ggplot2)
 library(tidyverse)
 library(ROCR)
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 set.seed(2021)
 ```
@@ -135,6 +135,22 @@ plot_ROC(outliers_p975,
          main = "PRP ROC Curve, 0.975 Nonoutlier Rate")
 ```
 
+Overlaying the plots, we can see that PRP works slightly better than MAMBA.
+```{r}
+ROC_compare_plot(true_outlier = outliers_p975,
+                 mamba_ppr = mamba_ppr_p975,
+                 prp = prp_975)
+```
+
+
+```{r}
+AUC_p975 <- ROC_AUC(true_outlier = outliers_p975,
+                    mamba_ppr = mamba_ppr_p975,
+                    prp = prp_975)
+```
+
+The MAMBA AUC is `r AUC_p975@y.values[[1]]`, while the PRP AUC is `r AUC_p975@y.values[[2]]`.
+
 \newpage
 # 0.9 Nonoutlier Rate
 
@@ -167,6 +183,21 @@ plot_ROC(outliers_p90,
          main = "PRP ROC Curve, 0.9 Nonoutlier Rate")
 ```
 
+Overlaying the plots, we can see that PRP still has a better curve than MAMBA when the rate of nonoutlier studies is 0.9.
+```{r}
+ROC_compare_plot(true_outlier = outliers_p90,
+                 mamba_ppr = mamba_ppr_p90,
+                 prp = prp_90)
+```
+
+```{r}
+AUC_p90 <- ROC_AUC(true_outlier = outliers_p90,
+                    mamba_ppr = mamba_ppr_p90,
+                    prp = prp_90)
+```
+
+The MAMBA AUC is `r AUC_p90@y.values[[1]]`, while the PRP AUC is `r AUC_p90@y.values[[2]]`.
+
 \newpage
 # 0.75 Nonoutlier Rate
 Here, we look at the case where 0.75 is "the proportion of non-replicable SNPs which are well behaved, or nonoutliers." 
@@ -196,6 +227,22 @@ plot_ROC(outliers_p75,
          prp_75,
          main = "PRP ROC Curve, 0.75 Nonoutlier Rate")
 ```
+
+Overlaying the plots, we can see that PRP has a slightly better curve than MAMBA when the rate of nonoutlier studies is 0.75.
+```{r}
+ROC_compare_plot(true_outlier = outliers_p75,
+                 mamba_ppr = mamba_ppr_p75,
+                 prp = prp_75)
+```
+
+
+```{r}
+AUC_p75 <- ROC_AUC(true_outlier = outliers_p75,
+                    mamba_ppr = mamba_ppr_p75,
+                    prp = prp_75)
+```
+
+The MAMBA AUC is `r AUC_p75@y.values[[1]]`, while the PRP AUC is `r AUC_p75@y.values[[2]]`.
 
 \newpage
 # 0.5 Nonoutlier Rate
@@ -227,6 +274,24 @@ plot_ROC(outliers_p50,
          prp_50,
          main = "PRP ROC Curve, 0.5 Nonoutlier Rate")
 ```
+
+
+Overlaying the plots, we can see that the MAMBA PPR curve and the PRP curve are starting to become more similar when the rate of nonoutlier studies is 0.50.
+```{r}
+ROC_compare_plot(true_outlier = outliers_p50,
+                 mamba_ppr = mamba_ppr_p50,
+                 prp = prp_50)
+```
+
+
+```{r}
+AUC_p50 <- ROC_AUC(true_outlier = outliers_p50,
+                    mamba_ppr = mamba_ppr_p50,
+                    prp = prp_50)
+```
+
+The MAMBA AUC is `r AUC_p50@y.values[[1]]`, while the PRP AUC is `r AUC_p50@y.values[[2]]`.
+
 
 \newpage
 # 0.25 Nonoutlier Rate
@@ -262,6 +327,14 @@ plot_ROC(outliers_p25,
          main = "PRP ROC Curve, 0.25 Nonoutlier Rate")
 ```
 
+Overlaying the plots, we can see the curves are extremely similar at a 0.25 nonoutlier rate (with our cutoff set at 3 outlier studies).
+```{r}
+ROC_compare_plot(true_outlier = outliers_p25,
+                 mamba_ppr = mamba_ppr_p25,
+                 prp = prp_25,
+                 outlier_cutoff = 3)
+```
+
 ```{r}
 # AUC
 AUC_p25 <- ROC_AUC(outliers_p25,
@@ -269,11 +342,9 @@ AUC_p25 <- ROC_AUC(outliers_p25,
                    prp = prp_25,
                    outlier_cutoff = 3)
 
-mamba_ppr_auc <- AUC_p25@y.values[[1]]
-prp_auc <- AUC_p25@y.values[[2]]
 ```
 
 
-
+The MAMBA AUC is `r AUC_p25@y.values[[1]]`, while the PRP AUC is `r AUC_p25@y.values[[2]]`.
 
 
