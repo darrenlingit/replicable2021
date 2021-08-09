@@ -20,8 +20,9 @@ library(knitr)
 library(pander)
 library(ggplot2)
 library(tidyverse)
+library(dplyr)
 
-#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 set.seed(2021)
 ```
@@ -203,4 +204,96 @@ diff_pop_prp$pvalue
 ```
 
 Using MAMBA, the PPR is `r diff_pop$ppr[1]`. The p-value given by the PRP package is `r diff_pop_prp$pvalue`.
+
+### Giant Consortium Studies
+```{r}
+get_val <- function(file_name, old_col, new_col) {
+  # read in files and get values
+  read.table(file = file_name, header = TRUE) %>%
+    select(c("CHR", "POS", old_col)) %>%
+    rename({{new_col}} := {{old_col}})
+  
+}
+
+# getting file data
+bmi_beta_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "beta", new_col = "beta_all")
+bmi_se_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "se", new_col = "se_all")
+
+bmi_beta_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "beta", new_col = "beta_AA")
+bmi_se_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "se", new_col = "se_AA")
+
+bmi_beta_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "beta", new_col = "beta_EA")
+bmi_se_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "se", new_col = "se_EA")
+
+bmi_beta_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "beta", new_col = "beta_euro")
+bmi_se_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "se", new_col = "se_euro")
+
+bmi_beta_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "beta", new_col = "beta_HA")
+bmi_se_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "se", new_col = "se_HA")
+
+bmi_beta_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "beta", new_col = "beta_SA")
+bmi_se_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "se", new_col = "se_SA")
+
+
+```
+
+```{r}
+# put beta values together
+df_beta_list <- list(bmi_beta_all, bmi_beta_AA, bmi_beta_EA, bmi_beta_euro, bmi_beta_HA, bmi_beta_SA)
+
+bmi_beta <- Reduce(function(df1, df2) {
+  
+  merge(x = df1, y = df2, by = c("CHR", "POS"), all = TRUE)
+},
+df_beta_list) %>%
+  select(-c("CHR", "POS"))
+
+# put se values together
+df_se_list <- list(bmi_se_all, bmi_se_AA, bmi_se_EA, bmi_se_euro, bmi_se_HA, bmi_se_SA)
+
+bmi_se <- Reduce(f = function(df1, df2){
+  
+  merge(x = df1, y= df2, by = c("CHR", "POS"), all.x = TRUE)
+},
+df_se_list) %>%
+  select(-c("CHR", "POS"))
+
+# save data to files
+save(bmi_beta, file = "data/giant_bmi/bmi_beta.rda")
+save(bmi_se, file = "data/giant_bmi/bmi_se.rda")
+
+```
+
+```{r}
+test1 <- posterior_prp(beta = as.double(bmi_beta[1, ]), se = as.double(bmi_se[1, ]))
+
+subset_beta <- bmi_beta[1:2, ]
+subset_se <- bmi_se[1:2, ]
+
+list_eff <- lapply(seq_len(nrow(subset_beta)),
+                  function(x) {
+                    subset_beta <- as.double(subset_beta[x,])
+                    subset_beta <- subset_beta[is.na(subset_beta) == FALSE]
+                  })
+
+list_se <- lapply(seq_len(nrow(subset_se)),
+                 function(x) {
+                   subset_se <- as.double(subset_se[x,])
+                   subset_se <- subset_se[is.infinite(subset_se) == FALSE]
+                 })
+
+post_prp_data <- t(mapply(posterior_prp,
+                           beta = list_eff,
+                           se = list_se))
+```
+
+
+```{r}
+# a test
+mamba_data_ppr_and_prp(beta = subset_beta,
+                       se = subset_se,
+                       prp_file = "prp_test",
+                       prp_pval_file = "prp_pval_test",
+                       mamba_data_file = "mamba_test")
+```
 
