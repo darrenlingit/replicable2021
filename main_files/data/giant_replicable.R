@@ -4,6 +4,7 @@ library(rstudioapi)
 library(mamba)
 library(data.table)
 library(parallel)
+library(dplyr)
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
@@ -15,12 +16,14 @@ giant_replicable <- function(beta, se, prp_file, prp_pval_file, mamba_data_file)
                     function(x) {
                       beta <- as.double(beta[x,])
                       beta <- beta[is.na(beta) == FALSE]
+                      #beta <- beta[is.infinite(beta) == FALSE]
                     })
   
   list_se = lapply(seq_len(nrow(se)),
                    function(x) {
                      se <- as.double(se[x,])
-                     se <- se[is.infinite(se) == FALSE]
+                     se <- se[is.na(se) == FALSE]
+                     #se <- se[is.infinite(se) == FALSE]
                    })
   
   
@@ -34,14 +37,18 @@ giant_replicable <- function(beta, se, prp_file, prp_pval_file, mamba_data_file)
   
   post_prp_data_pval <- as.numeric(post_prp_data$pvalue)
   
+  # saving prp data
+  save(post_prp_data, file = prp_file)
+  save(post_prp_data_pval, file = prp_pval_file)
+  
+  
+  
+  
   # now fitting mamba
   print("Now applying MAMBA library.")
   mamba_data <- mamba(beta, se^2)
   
-  # saving data
-  save(post_prp_data, file = prp_file)
-  save(post_prp_data_pval, file = prp_pval_file)
-  
+  # saving mamba data
   save(mamba_data, file = mamba_data_file)
   
 }
