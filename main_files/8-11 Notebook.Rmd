@@ -214,78 +214,96 @@ get_val <- function(file_name, old_col, new_col) {
     rename({{new_col}} := {{old_col}})
   
 }
-
-# getting file data
-bmi_beta_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "beta", new_col = "beta_all")
-bmi_se_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "se", new_col = "se_all")
-
-bmi_beta_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "beta", new_col = "beta_AA")
-bmi_se_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "se", new_col = "se_AA")
-
-bmi_beta_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "beta", new_col = "beta_EA")
-bmi_se_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "se", new_col = "se_EA")
-
-bmi_beta_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "beta", new_col = "beta_euro")
-bmi_se_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "se", new_col = "se_euro")
-
-bmi_beta_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "beta", new_col = "beta_HA")
-bmi_se_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "se", new_col = "se_HA")
-
-bmi_beta_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "beta", new_col = "beta_SA")
-bmi_se_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "se", new_col = "se_SA")
-
-
 ```
+
+
+First we look at the BMI.
 
 ```{r}
-# put beta values together
-df_beta_list <- list(bmi_beta_all, bmi_beta_AA, bmi_beta_EA, bmi_beta_euro, bmi_beta_HA, bmi_beta_SA)
-
-bmi_beta <- Reduce(function(df1, df2) {
+# load data if cleaned data file already exists
+if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
+    file.exists(file = "data/giant_bmi/bmi_se.rda")) {
   
-  merge(x = df1, y = df2, by = c("CHR", "POS"), all = TRUE)
-},
-df_beta_list) %>%
-  select(-c("CHR", "POS"))
-
-# put se values together
-df_se_list <- list(bmi_se_all, bmi_se_AA, bmi_se_EA, bmi_se_euro, bmi_se_HA, bmi_se_SA)
-
-bmi_se <- Reduce(f = function(df1, df2){
+  load(file = "data/giant_bmi/bmi_beta.rda")
+  load(file = "data/giant_bmi/bmi_se.rda")
   
-  merge(x = df1, y= df2, by = c("CHR", "POS"), all.x = TRUE)
-},
-df_se_list) %>%
-  select(-c("CHR", "POS"))
-
-# save data to files
-save(bmi_beta, file = "data/giant_bmi/bmi_beta.rda")
-save(bmi_se, file = "data/giant_bmi/bmi_se.rda")
-
+  
+  
+} else {
+  
+  # getting file data
+  bmi_beta_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "beta", new_col = "beta_all")
+  bmi_se_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "se", new_col = "se_all")
+  
+  bmi_beta_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "beta", new_col = "beta_AA")
+  bmi_se_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "se", new_col = "se_AA")
+  
+  bmi_beta_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "beta", new_col = "beta_EA")
+  bmi_se_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "se", new_col = "se_EA")
+  
+  bmi_beta_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "beta", new_col = "beta_euro")
+  bmi_se_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "se", new_col = "se_euro")
+  
+  bmi_beta_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "beta", new_col = "beta_HA")
+  bmi_se_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "se", new_col = "se_HA")
+  
+  bmi_beta_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "beta", new_col = "beta_SA")
+  bmi_se_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "se", new_col = "se_SA")
+  
+  
+  # put beta values together
+  df_beta_list <- list(bmi_beta_all, bmi_beta_AA, bmi_beta_EA, bmi_beta_euro, bmi_beta_HA, bmi_beta_SA)
+  
+  # merging data and dropping chr and pos columns
+  bmi_beta <- Reduce(function(df1, df2) {
+    
+    merge(x = df1, y = df2, by = c("CHR", "POS"), all = TRUE)
+  },
+  df_beta_list) %>%
+    select(-c("CHR", "POS"))
+  
+  # put se values together
+  df_se_list <- list(bmi_se_all, bmi_se_AA, bmi_se_EA, bmi_se_euro, bmi_se_HA, bmi_se_SA)
+  
+  bmi_se <- Reduce(f = function(df1, df2){
+    
+    merge(x = df1, y= df2, by = c("CHR", "POS"), all = TRUE)
+  },
+  df_se_list) %>%
+    select(-c("CHR", "POS"))
+  
+  
+  # remove any rows that are all NA
+  
+  bmi_beta[bmi_beta == Inf] <- NA
+  
+  bmi_beta <- bmi_beta %>%
+    filter(!is.na(bmi_beta[, 1]) |
+             !is.na(bmi_beta[, 2]) |
+             !is.na(bmi_beta[, 3]) |
+             !is.na(bmi_beta[, 4]) |
+             !is.na(bmi_beta[, 5]) |
+             !is.na(bmi_beta[, 6]))
+  
+  
+  bmi_se[bmi_se == Inf] <- NA
+  
+  bmi_se <- bmi_se %>%
+    filter(!is.na(bmi_se[, 1]) |
+             !is.na(bmi_se[, 2]) |
+             !is.na(bmi_se[, 3]) |
+             !is.na(bmi_se[, 4]) |
+             !is.na(bmi_se[, 5]) |
+             !is.na(bmi_se[, 6]))
+  
+  # save data to files
+  save(bmi_beta, file = "data/giant_bmi/bmi_beta.rda")
+  save(bmi_se, file = "data/giant_bmi/bmi_se.rda")
+  
+  
+}
 ```
 
-```{r}
-test1 <- posterior_prp(beta = as.double(bmi_beta[1, ]), se = as.double(bmi_se[1, ]))
-
-subset_beta <- bmi_beta[1:2, ]
-subset_se <- bmi_se[1:2, ]
-
-list_eff <- lapply(seq_len(nrow(subset_beta)),
-                  function(x) {
-                    subset_beta <- as.double(subset_beta[x,])
-                    subset_beta <- subset_beta[is.na(subset_beta) == FALSE]
-                  })
-
-list_se <- lapply(seq_len(nrow(subset_se)),
-                 function(x) {
-                   subset_se <- as.double(subset_se[x,])
-                   subset_se <- subset_se[is.infinite(subset_se) == FALSE]
-                 })
-
-post_prp_data <- t(mapply(posterior_prp,
-                           beta = list_eff,
-                           se = list_se))
-```
 
 
 ```{r}
@@ -295,5 +313,97 @@ mamba_data_ppr_and_prp(beta = subset_beta,
                        prp_file = "prp_test",
                        prp_pval_file = "prp_pval_test",
                        mamba_data_file = "mamba_test")
+```
+
+
+Next we look at height.
+
+```{r}
+# loading in cleaned data, or if it doesn't exist then cleaning it now
+if (file.exists(file = "data/giant_height/height_beta.rda") &&
+    file.exists(file = "data/giant_height/height_se.rda")) {
+  
+  load(file = "data/giant_height/height_beta.rda")
+  load(file = "data/giant_height/height_se.rda")
+  
+} else {
+  
+  # height beta
+  height_beta_AA <- get_val(file = "data/giant_height/height_AA_add_SV.txt", old_col = "beta", new_col = "beta_AA")
+  height_beta_all <- get_val(file = "data/giant_height/height_All_add_SV.txt", old_col = "beta", new_col = "beta_all")
+  height_beta_EA <- get_val(file = "data/giant_height/height_EA_add_SV.txt", old_col = "beta", new_col = "beta_EA")
+  height_beta_EAS <- get_val(file = "data/giant_height/height_EAS_add_SV.txt", old_col = "beta", new_col = "beta_EAS")
+  height_beta_HA <- get_val(file = "data/giant_height/height_HA_add_SV.txt", old_col = "beta", new_col = "beta_HA")
+  height_beta_SA <- get_val(file = "data/giant_height/height_SA_add_SV.txt", old_col = "beta", new_col = "beta_SA")
+  
+  # height se
+  height_se_AA <- get_val(file = "data/giant_height/height_AA_add_SV.txt", old_col = "se", new_col = "se_AA")
+  height_se_all <- get_val(file = "data/giant_height/height_All_add_SV.txt", old_col = "se", new_col = "se_all")
+  height_se_EA <- get_val(file = "data/giant_height/height_EA_add_SV.txt", old_col = "se", new_col = "se_EA")
+  height_se_EAS <- get_val(file = "data/giant_height/height_EAS_add_SV.txt", old_col = "se", new_col = "se_EAS")
+  height_se_HA <- get_val(file = "data/giant_height/height_HA_add_SV.txt", old_col = "se", new_col = "se_HA")
+  height_se_SA <- get_val(file = "data/giant_height/height_SA_add_SV.txt", old_col = "se", new_col = "se_SA")
+  
+  # put beta values together
+  df_beta_list <- list(height_beta_AA, height_beta_all, height_beta_EA, height_beta_EAS, height_beta_HA, height_beta_SA)
+  
+  # merging data and dropping chr and pos columns
+  height_beta <- Reduce(function(df1, df2) {
+    
+    merge(x = df1, y = df2, by = c("CHR", "POS"), all = TRUE)
+  },
+  df_beta_list) %>%
+    select(-c("CHR", "POS"))
+  
+  
+  # put se values together
+  df_se_list <- list(height_se_AA, height_se_all, height_se_EA, height_se_EAS, height_se_HA, height_se_SA)
+  
+  height_se <- Reduce(f = function(df1, df2){
+    
+    merge(x = df1, y= df2, by = c("CHR", "POS"), all = TRUE)
+  },
+  df_se_list) %>%
+    select(-c("CHR", "POS"))
+  
+  
+  # remove any rows that are all NA
+  
+  height_beta[height_beta == Inf] <- NA
+  
+  height_beta <- height_beta %>%
+    filter(!is.na(height_beta[, 1]) |
+             !is.na(height_beta[, 2]) |
+             !is.na(height_beta[, 3]) |
+             !is.na(height_beta[, 4]) |
+             !is.na(height_beta[, 5]) |
+             !is.na(height_beta[, 6]))
+  
+  
+  height_se[height_se == Inf] <- NA
+  
+  height_se <- height_se %>%
+    filter(!is.na(height_se[, 1]) |
+             !is.na(height_se[, 2]) |
+             !is.na(height_se[, 3]) |
+             !is.na(height_se[, 4]) |
+             !is.na(height_se[, 5]) |
+             !is.na(height_se[, 6]))
+  
+  save(height_beta, file = "data/giant_height/height_beta.rda")
+  save(height_se, file = "data/giant_height/height_se.rda")
+}
+```
+
+```{r}
+# test set
+height_beta1 <- height_beta[1:500, ]
+height_se1 <- height_se[1:500, ]
+
+giant_replicable(beta = height_beta1,
+                 se = height_se1,
+                 prp_file = "deleteprp.rda",
+                 prp_pval_file = "deleteprppval.rda",
+                 mamba_data_file = "deletemamba.rda")
 ```
 
