@@ -206,6 +206,8 @@ diff_pop_prp$pvalue
 Using MAMBA, the PPR is `r diff_pop$ppr[1]`. The p-value given by the PRP package is `r diff_pop_prp$pvalue`.
 
 ### Giant Consortium Studies
+
+## BMI
 ```{r}
 get_val <- function(file_name, old_col, new_col) {
   # read in files and get values
@@ -305,17 +307,54 @@ if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
 ```
 
 
-
+## BMI Graphs
+Now we get a better look at the BMI through graphical representations.
 ```{r}
-# a test
-mamba_data_ppr_and_prp(beta = subset_beta,
-                       se = subset_se,
-                       prp_file = "prp_test",
-                       prp_pval_file = "prp_pval_test",
-                       mamba_data_file = "mamba_test")
+source(file = "data/giant_replicable.R")
 ```
 
 
+```{r}
+# a test, replace with actual data when it exists
+bmi_sub_beta <- bmi_beta[1:50, ]
+bmi_sub_se <- bmi_se[1:50, ]
+
+giant_replicable(beta = bmi_sub_beta,
+                 se = bmi_sub_se,
+                 prp_file = "bmi_sub_prp.rda",
+                 prp_pval_file = "bmi_sub_prp_pval.rda",
+                 mamba_data_file = "bmi_sub_mamba.rda")
+
+load(file = "bmi_sub_prp.rda")
+load(file = "bmi_sub_prp_pval.rda")
+load(file = "bmi_sub_mamba.rda")
+```
+
+We take a look at our PPR and PRP values.
+```{r}
+# from MAMBA
+bmi_ppr_val <- as.data.frame(mamba_data$ppr)
+ggplot(data = bmi_ppr_val, aes(x = mamba_data$ppr)) +
+  geom_histogram() +
+  xlim(0, 1) +
+  xlab("PPR Values")
+```
+
+
+```{r}
+# from PRP
+bmi_prp_pval <- as.data.frame(post_prp_data_pval) %>%
+  rename("prp_pval" = "post_prp_data_pval")
+
+ggplot(data = bmi_prp_pval, aes(x = prp_pval)) +
+  geom_histogram() +
+  xlim(0, 1) +
+  xlab("PRP Values")
+```
+
+
+
+### Height
 Next we look at height.
 
 ```{r}
