@@ -27,7 +27,7 @@ set.seed(2021)
 ```
 
 # Functions
-```{r}
+```{r ROCR Function}
 # function to plot ROC curve using ROCR library
 plot_ROC <- function(true_outliers,
                      pvals,
@@ -52,7 +52,7 @@ plot_ROC <- function(true_outliers,
 }
 ```
 
-```{r}
+```{r ROC Compare Function}
 # function to put ROC curves on same plot
 ROC_compare_plot <- function(true_outlier,
                              mamba_ppr,
@@ -83,7 +83,7 @@ ROC_compare_plot <- function(true_outlier,
 
 ```
 
-```{r}
+```{r AUC Function}
 # AUC function
 ROC_AUC <- function(true_outlier,
                     mamba_ppr,

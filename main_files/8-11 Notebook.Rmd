@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "R Notebook, Week of 8/11"
 output:
   html_document:
     df_print: paged
@@ -8,6 +8,14 @@ output:
 editor_options:
   chunk_output_type: console
 ---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE
+)
+```
+
+
 
 ```{r include = FALSE}
 # libraries and other things
@@ -22,7 +30,7 @@ library(ggplot2)
 library(tidyverse)
 library(dplyr)
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 set.seed(2021)
 ```
@@ -58,20 +66,17 @@ load(file = "data/prp_data/post_prp_data_pval_p975.rda") # post_prp_data_pval
 
 Below are the PPRs and PRPs from the the SNPs with and without outlier studies.
 ```{r}
-# pprs for snps w/ and w/o outliers
+# MAMBA pprs for snps w/ and w/o outliers
 out_ppr <- pprs[out_rows_ind]
 nonout_ppr <- pprs[no_out_rows_ind]
-```
 
-
-```{r}
 # prps for snps w/ and w/o outliers
 out_prp <- post_prp_data_pval[out_rows_ind]
 nonout_prp <- post_prp_data_pval[no_out_rows_ind]
 ```
 
-For our outlier SNPs, the distribution of our PPRs looks as follows:
-```{r}
+For our SNPs **with outliers**, the distribution of our PPRs looks as follows:
+```{r warning = FALSE}
 ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
   geom_histogram(binwidth = 0.001) +
   ggtitle("Distribution of PPR, SNPs With Outliers") +
@@ -79,7 +84,7 @@ ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
 ```
 
 Rescaling the graph by ignoring some outliers, we get the histogram below.
-```{r}
+```{r warning = FALSE}
 ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
   geom_histogram(binwidth = 0.001) +
   ggtitle("Distribution of PPR, SNPs With Outliers") +
@@ -88,7 +93,7 @@ ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
 ```
 
 In contrast, this is what the distribution of our PRPs for outlier SNPs looks like. Keep in mind the differently scaled x-axis.
-```{r}
+```{r warning = FALSE}
 ggplot(data = as.data.frame(out_prp), aes(out_prp)) +
   geom_histogram(binwidth = 0.001) +
   ggtitle("Distribution of PRP, SNPs With Outliers") +
@@ -96,9 +101,9 @@ ggplot(data = as.data.frame(out_prp), aes(out_prp)) +
 ```
 
 
-For our SNPs without outliers, the PRP distribution is given in the following histogram.
+For our SNPs **without outliers**, the PRP distribution is given in the following histogram.
 
-```{r}
+```{r warning = FALSE}
 ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
   geom_histogram(binwidth = 0.0001) +
   ggtitle("Distribution of PPR, SNPs Without Outliers") +
@@ -106,7 +111,7 @@ ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
 ```
 
 Like before, if we ignore extreme PPR values, our histogram looks different.
-```{r}
+```{r warning = FALSE}
 ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
   geom_histogram(binwidth = 0.0001) +
   ggtitle("Distribution of PPR, SNPs Without Outliers") +
@@ -115,7 +120,7 @@ ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
 ```
 
 In contrast, this is what the distribution of our PRP values looks like.
-```{r}
+```{r warning = FALSE}
 ggplot(data = as.data.frame(nonout_prp), aes(nonout_prp)) +
   geom_histogram(binwidth = 0.001) +
   ggtitle("Distribution of PRP, SNPs Without Outliers") +
@@ -123,7 +128,7 @@ ggplot(data = as.data.frame(nonout_prp), aes(nonout_prp)) +
 ```
 
 \newpage
-### Different Population Sampling (this hasn't been updated yet from last week)
+# Different Population Sampling (this hasn't been updated yet from last week)
 
 
 We sample from 5000 individuals. For each "study," we sample at different allele frequencies (0.01, 0.1, and 0.25).
@@ -163,17 +168,20 @@ bhat0.25 <- lm_model0.25$coefficients[2]
 se0.25 <- summary(lm_model0.25)$sigma
 ```
 
-The effect size estimates are given in the table below. Our true effect size is `beta`.
+The effect size estimates are given in the table below. Our true effect size is `r beta`.
+
 ```{r echo = FALSE}
 pander(c(bhat0.01, bhat0.1, bhat0.25))
 ```
 
 Their respective standard errors are given in the table below.
+
 ```{r echo = FALSE}
 pander(c(se0.01, se0.1, se0.25))
 ```
 
 Using these predictions, we can see how MAMBA and the PRP library behave. We treat each allele frequency as its own study, and so we compare the three studies with different allele frequencies to each other.
+
 ```{r}
 # list of our (predicted) effect size and variance
 snpeffect <- c(bhat0.01, bhat0.1, bhat0.25)
@@ -186,6 +194,7 @@ snpvar_prp <- rbind(snpvar, snpvar)
 
 
 First we fit these results to MAMBA.
+
 ```{r results = "hide"}
 diff_pop <- mamba(beta = snpeffect_prp,
                   sjk2 = snpvar_prp)
@@ -200,15 +209,15 @@ Next we fit to the PRP model.
 ```{r}
 diff_pop_prp <- posterior_prp(beta = snpeffect,
                               se = sqrt(snpvar))
-diff_pop_prp$pvalue
 ```
 
 Using MAMBA, the PPR is `r diff_pop$ppr[1]`. The p-value given by the PRP package is `r diff_pop_prp$pvalue`.
 
-### Giant Consortium Studies
+\newpage
+# Giant Consortium Studies
 
 ## BMI
-```{r}
+```{r include = FALSE}
 get_val <- function(file_name, old_col, new_col) {
   # read in files and get values
   read.table(file = file_name, header = TRUE) %>%
@@ -221,7 +230,7 @@ get_val <- function(file_name, old_col, new_col) {
 
 First we look at the BMI.
 
-```{r}
+```{r include = FALSE}
 # load data if cleaned data file already exists
 if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
     file.exists(file = "data/giant_bmi/bmi_se.rda")) {
@@ -230,28 +239,27 @@ if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
   load(file = "data/giant_bmi/bmi_se.rda")
   
   
-  
 } else {
   
   # getting file data
+  
+  # bmi beta values
   bmi_beta_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "beta", new_col = "beta_all")
-  bmi_se_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "se", new_col = "se_all")
-  
   bmi_beta_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "beta", new_col = "beta_AA")
-  bmi_se_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "se", new_col = "se_AA")
-  
   bmi_beta_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "beta", new_col = "beta_EA")
-  bmi_se_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "se", new_col = "se_EA")
-  
   bmi_beta_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "beta", new_col = "beta_euro")
-  bmi_se_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "se", new_col = "se_euro")
-  
   bmi_beta_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "beta", new_col = "beta_HA")
-  bmi_se_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "se", new_col = "se_HA")
-  
   bmi_beta_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "beta", new_col = "beta_SA")
-  bmi_se_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "se", new_col = "se_SA")
   
+  
+  
+  # bmi se values
+  bmi_se_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt", old_col = "se", new_col = "se_all")
+  bmi_se_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt", old_col = "se", new_col = "se_AA")
+  bmi_se_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt", old_col = "se", new_col = "se_EA")
+  bmi_se_euro <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt", old_col = "se", new_col = "se_euro")
+  bmi_se_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt", old_col = "se", new_col = "se_HA")
+  bmi_se_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt", old_col = "se", new_col = "se_SA")
   
   # put beta values together
   df_beta_list <- list(bmi_beta_all, bmi_beta_AA, bmi_beta_EA, bmi_beta_euro, bmi_beta_HA, bmi_beta_SA)
@@ -277,7 +285,7 @@ if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
   
   # remove any rows that are all NA
   
-  bmi_beta[bmi_beta == Inf] <- NA
+  bmi_beta[bmi_beta == Inf] <- NA # Inf values are treated as NA
   
   bmi_beta <- bmi_beta %>%
     filter(!is.na(bmi_beta[, 1]) |
@@ -309,39 +317,50 @@ if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
 
 ## BMI Graphs
 Now we get a better look at the BMI through graphical representations.
-```{r}
+
+```{r include = FALSE}
 source(file = "data/giant_replicable.R")
 ```
 
 
-```{r}
+```{r include = FALSE}
 # a test, replace with actual data when it exists
-bmi_sub_beta <- bmi_beta[1:50, ]
-bmi_sub_se <- bmi_se[1:50, ]
+bmi_sub_beta <- bmi_beta[1:500, ]
+bmi_sub_se <- bmi_se[1:500, ]
 
-giant_replicable(beta = bmi_sub_beta,
-                 se = bmi_sub_se,
-                 prp_file = "bmi_sub_prp.rda",
-                 prp_pval_file = "bmi_sub_prp_pval.rda",
-                 mamba_data_file = "bmi_sub_mamba.rda")
+if (file.exists(file = "bmi_sub_prp.rda") &&
+    file.exists(file = "bmi_sub_prp_pval.rda") &&
+    file.exists(file = "bmi_sub_mamba.rda")) {
+  
+  load(file = "bmi_sub_prp.rda")
+  load(file = "bmi_sub_prp_pval.rda")
+  load(file = "bmi_sub_mamba.rda")
+  
+} else {
+  
+  giant_replicable(beta = bmi_sub_beta,
+                   se = bmi_sub_se,
+                   prp_file = "bmi_sub_prp.rda",
+                   prp_pval_file = "bmi_sub_prp_pval.rda",
+                   mamba_data_file = "bmi_sub_mamba.rda")
+}
 
-load(file = "bmi_sub_prp.rda")
-load(file = "bmi_sub_prp_pval.rda")
-load(file = "bmi_sub_mamba.rda")
 ```
 
-We take a look at our PPR and PRP values.
-```{r}
+We take a look at our PPR and PRP values. The histogram of our PPR values for BMI is given below.
+
+```{r echo = FALSE, message = FALSE}
 # from MAMBA
 bmi_ppr_val <- as.data.frame(mamba_data$ppr)
 ggplot(data = bmi_ppr_val, aes(x = mamba_data$ppr)) +
   geom_histogram() +
   xlim(0, 1) +
-  xlab("PPR Values")
+  xlab("MAMBA PPR Values")
 ```
 
+In contrast, here is our histogram of PRP values.
 
-```{r}
+```{r echo = FALSE, message = FALSE}
 # from PRP
 bmi_prp_pval <- as.data.frame(post_prp_data_pval) %>%
   rename("prp_pval" = "post_prp_data_pval")
@@ -353,11 +372,11 @@ ggplot(data = bmi_prp_pval, aes(x = prp_pval)) +
 ```
 
 
-
-### Height
+\newpage
+# Height
 Next we look at height.
 
-```{r}
+```{r include = FALSE}
 # loading in cleaned data, or if it doesn't exist then cleaning it now
 if (file.exists(file = "data/giant_height/height_beta.rda") &&
     file.exists(file = "data/giant_height/height_se.rda")) {
@@ -434,15 +453,53 @@ if (file.exists(file = "data/giant_height/height_beta.rda") &&
 }
 ```
 
-```{r}
+```{r include = FALSE}
 # test set
 height_beta1 <- height_beta[1:500, ]
 height_se1 <- height_se[1:500, ]
 
-giant_replicable(beta = height_beta1,
-                 se = height_se1,
-                 prp_file = "deleteprp.rda",
-                 prp_pval_file = "deleteprppval.rda",
-                 mamba_data_file = "deletemamba.rda")
+if (file.exists(file = "height_sub_prp.rda") &&
+    file.exists(file = "height_sub_prp_val.rda") &&
+    file.exists(file = "height_sub_mamba.rda")) {
+  
+  load(file = "height_sub_prp.rda")
+  load(file = "height_sub_prp_val.rda")
+  load(file = "height_sub_mamba.rda")
+  
+} else {
+  
+  giant_replicable(beta = height_beta1,
+                   se = height_se1,
+                   prp_file = "height_sub_prp.rda",
+                   prp_pval_file = "height_sub_prp_val.rda",
+                   mamba_data_file = "height_sub_mamba.rda")
+  
+}
+
+
+```
+
+We take a look at our PPR and PRP values. The histogram of our PPR values is given below.
+
+```{r echo = FALSE, message = FALSE}
+# from MAMBA
+height_ppr_val <- as.data.frame(mamba_data$ppr)
+ggplot(data = height_ppr_val, aes(x = mamba_data$ppr)) +
+  geom_histogram() +
+  xlim(0, 1) +
+  xlab("MAMBA PPR Values")
+```
+
+In contrast, we have our histogram for PRP values.
+
+```{r echo = FALSE, message = FALSE}
+# from PRP
+height_prp_pval <- as.data.frame(post_prp_data_pval) %>%
+  rename("prp_pval" = "post_prp_data_pval")
+
+ggplot(data = height_prp_pval, aes(x = prp_pval)) +
+  geom_histogram() +
+  xlim(0, 1) +
+  xlab("PRP Values")
 ```
 
