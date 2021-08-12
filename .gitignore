@@ -2,7 +2,8 @@
 .Rhistory
 .RData
 
-*/data/*
+# ignore data files
+/old/data/*
 /main_files/data/*/*
 
 !.gitkeep
