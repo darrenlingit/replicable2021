@@ -196,7 +196,7 @@ if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
   
   # indices that are all NA values
   allnaind <- bmi_vals %>%
-    select(-c("CHR", "POS")) %>%
+    select(-c("CHR", "POS", "beta_all", "se_all", "pval")) %>%
     apply(MARGIN=1, function(row_val) {
       all(is.na(row_val))
     } )
@@ -279,7 +279,7 @@ ggplot(data = bmi_prp_pval, aes(x = prp_pval)) +
 
 
 \newpage
-# Height
+## Height
 Next we look at height.
 
 ```{r include = FALSE}
@@ -331,7 +331,7 @@ if (file.exists(file = "data/giant_height/height_beta.rda") &&
   
   # indices that are all NA values
   allnaind <- height_vals %>%
-    select(-c("CHR", "POS")) %>%
+    select(-c("CHR", "POS", "beta_all", "se_all", "pval")) %>%
     apply(MARGIN=1, function(row_val) {
       all(is.na(row_val))
     } )
@@ -381,6 +381,7 @@ if (file.exists(file = "data/giant_height/height_prp.rda") &&
 
 ```
 
+## Height Graphs
 We take a look at our PPR and PRP values. The histogram of our PPR values is given below.
 
 ```{r echo = FALSE, message = FALSE}
@@ -401,5 +402,90 @@ height_prp_pval <- as.data.frame(post_prp_data_pval) %>%
 ggplot(data = height_prp_pval, aes(x = prp_pval)) +
   geom_histogram() +
   xlab("PRP Values")
+```
+
+
+# Prior Checking
+
+```{r}
+# data cleaning
+if (file.exists(file = "data/giant_meta/meta_beta.rda") &&
+    file.exists(file = "data/giant_meta/meta_se.rda")) {
+  
+  load(file = "data/giant_meta/meta_beta.rda")
+  load(file = "data/giant_meta/meta_se.rda")
+  
+} else {
+  # read in data files
+  old_cols <- c("SNP", "BETA", "SE", "P")
+  
+  new_cols_locke <- c("snp", "beta_locke", "se_locke", "pval_locke")
+  meta_Locke <- get_val(file_name = "data/giant_meta/Meta-analysis_Locke_et_al+UKBiobank_2018_UPDATED.txt",
+                        old_col = old_cols,
+                        new_col = new_cols_locke)
+  
+  new_cols_wood <- c("snp", "beta_wood", "se_wood", "pval_wood")
+  meta_Wood <- get_val(file_name = "data/giant_meta/Meta-analysis_Wood_et_al+UKBiobank_2018.txt",
+                       old_col = old_cols,
+                       new_col = new_cols_wood)
+  
+  # combining data
+  meta_df <- merge(x = meta_Locke,
+                   y = meta_Wood,
+                   by = c("CHR", "POS", "snp"),
+                   all = TRUE)
+  
+  # filtering to keep significant snps
+  meta_df <- filter(meta_df, pval_locke <= 0.05/nrow(meta_df))
+  
+  
+  # remove any rows that are all NA
+  meta_df[meta_df == Inf] <- NA
+  
+  
+  # indices that are all NA values
+  allnaind <- meta_df %>%
+    select(-c("CHR", "POS", "snp", "pval_locke", "pval_wood")) %>%
+    apply(MARGIN=1, function(row_val) {
+      all(is.na(row_val))
+    } )
+  
+  meta_df <- meta_df[!allnaind, ]
+  
+  
+  meta_beta <- meta_df %>%
+    select(c("beta_locke", "beta_wood"))
+  
+  meta_se <- meta_df %>%
+    select(c("se_locke", "se_wood"))
+  
+  
+  save(meta_beta, file = "data/giant_meta/meta_beta.rda")
+  save(meta_se, file = "data/giant_meta/meta_se.rda")
+}
+```
+
+```{r}
+# some testing
+meta_prior <- prior_prp(beta = as.double(meta_beta[3, ]),
+                        se = as.double(meta_se[3, ]))
+
+list_eff = lapply(seq_len(nrow(meta_beta)),
+                    function(x) {
+                      meta_beta <- as.double(meta_beta[x,])
+                      meta_beta <- meta_beta[is.na(meta_beta) == FALSE]
+                      #beta <- beta[is.infinite(beta) == FALSE]
+                    })
+
+list_se = lapply(seq_len(nrow(meta_se)),
+                   function(x) {
+                     meta_se <- as.double(meta_se[x,])
+                     meta_se <- meta_se[is.na(meta_se) == FALSE]
+                     #se <- se[is.infinite(se) == FALSE]
+                   })
+
+prior_prp_data = t(mapply(prior_prp,
+                          beta = list_eff,
+                          se = list_se))
 ```
 
