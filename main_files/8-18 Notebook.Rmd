@@ -1,0 +1,405 @@
+---
+title: "R Notebook, Week of 8/18"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  html_notebook: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE
+)
+```
+
+
+
+```{r include = FALSE}
+# libraries and other things
+library(PRP)
+library(rstudioapi)
+library(mamba)
+library(data.table)
+library(parallel)
+library(knitr)
+library(pander)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+set.seed(2021)
+```
+
+
+First we simulate data according to MAMBA and calculate the PPR values (from the MAMBA package) and the PRP values (from the PRP package). The job R files used for this are located in the code/data directories. The packages are calculated for all 50000 SNPS. Here, we'll look at the case where the nonoutlier study rate is 0.975.
+
+```{r}
+load(file = "data/mamba_data/sim_mamba_mod_p975.rda")
+load(file = "data/mamba_data/mamba_data_p975.rda")
+
+pprs <- sim_mod$ppr
+```
+
+
+We take the indices for the SNPs that have at least one outlier study.
+```{r}
+# indices for snps w/ and w/o outliers
+out_studies <- mamba_data$Ojk
+out_rows_ind <- which(rowSums(out_studies == 0) > 0) # indices of snps with outlier studies
+no_out_rows_ind <-which(rowSums(out_studies) == 10) # indices of rows w/o outliers
+```
+
+
+Then we load in the data containing the PRPs (from PRP package) for each SNP.
+```{r}
+# loading PRP data
+
+load(file = "data/prp_data/post_prp_data_pval_p975.rda") # post_prp_data_pval
+
+```
+
+
+Below are the PPRs and PRPs from the the SNPs with and without outlier studies.
+```{r}
+# MAMBA pprs for snps w/ and w/o outliers
+out_ppr <- pprs[out_rows_ind]
+nonout_ppr <- pprs[no_out_rows_ind]
+
+# prps for snps w/ and w/o outliers
+out_prp <- post_prp_data_pval[out_rows_ind]
+nonout_prp <- post_prp_data_pval[no_out_rows_ind]
+```
+
+For our SNPs **with outliers**, the distribution of our PPRs looks as follows:
+```{r warning = FALSE}
+ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of PPR, SNPs With Outliers") +
+  xlab("PPR")
+```
+
+Rescaling the graph by ignoring some outliers, we get the histogram below.
+```{r warning = FALSE}
+ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of PPR, SNPs With Outliers") +
+  xlab("PPR") +
+  xlim(0, 0.1)
+```
+
+In contrast, this is what the distribution of our PRPs for outlier SNPs looks like. Keep in mind the differently scaled x-axis.
+```{r warning = FALSE}
+ggplot(data = as.data.frame(out_prp), aes(out_prp)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of PRP, SNPs With Outliers") +
+  xlab("PRP")
+```
+
+
+For our SNPs **without outliers**, the PRP distribution is given in the following histogram.
+
+```{r warning = FALSE}
+ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
+  geom_histogram(binwidth = 0.0001) +
+  ggtitle("Distribution of PPR, SNPs Without Outliers") +
+  xlab("PPR")
+```
+
+Like before, if we ignore extreme PPR values, our histogram looks different.
+```{r warning = FALSE}
+ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
+  geom_histogram(binwidth = 0.0001) +
+  ggtitle("Distribution of PPR, SNPs Without Outliers") +
+  xlab("PPR") +
+  xlim(0, 0.1)
+```
+
+In contrast, this is what the distribution of our PRP values looks like.
+```{r warning = FALSE}
+ggplot(data = as.data.frame(nonout_prp), aes(nonout_prp)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of PRP, SNPs Without Outliers") +
+  xlab("PRP")
+```
+
+\newpage
+# Giant Consortium Studies
+```{r include = FALSE}
+get_val <- function(file_name, old_col, new_col) {
+  # read in files and get values
+  table_select <- read.table(file = file_name, header = TRUE) %>%
+    select(c("CHR", "POS", old_col)) 
+  
+  for (i in 1:length(old_col)) {
+    table_select <- table_select %>%
+      rename(!!new_col[i] := !!old_col[i])
+  }
+  
+  return(table_select)
+}
+```
+
+## BMI
+First we look at the BMI. We'll only look at the SNPs that are significant (where the p-values for "All" data file is less than 0.05/the number of SNPs).
+
+```{r include = FALSE}
+# load data if cleaned data file already exists
+if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
+    file.exists(file = "data/giant_bmi/bmi_se.rda")) {
+  
+  load(file = "data/giant_bmi/bmi_beta.rda")
+  load(file = "data/giant_bmi/bmi_se.rda")
+  
+  
+} else {
+  # height datasets
+  bmi_all <- get_val(file = "data/giant_bmi/BMI_All_ancestry.fmt.txt",
+                        old_col = c("beta", "se", "Pvalue"),
+                        new_col = c("beta_all", "se_all", "pval"))
+  bmi_AA <- get_val(file = "data/giant_bmi/BMI_African_American.fmt.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_AA", "se_AA"))
+  bmi_EA <- get_val(file = "data/giant_bmi/BMI_Eastern_Asian.fmt.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_EA", "se_EA"))
+  bmi_EU <- get_val(file = "data/giant_bmi/BMI_European.fmt.txt",
+                        old_col = c("beta", "se"),
+                        new_col = c("beta_EAS", "se_EAS"))
+  bmi_HA <- get_val(file = "data/giant_bmi/BMI_Hispanic_American.fmt.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_HA", "se_HA"))
+  bmi_SA <- get_val(file = "data/giant_bmi/BMI_South_Asian.fmt.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_SA", "se_SA"))
+  
+  
+  # put all values together
+  bmi_list <- list(bmi_AA, bmi_EA, bmi_EU, bmi_HA, bmi_SA, bmi_all)
+  
+  
+  # merging data and dropping chr and pos columns
+  bmi_vals <- Reduce(function(df1, df2) {
+    merge(x = df1, y = df2, by = c("CHR", "POS"), all = TRUE)
+  },
+  bmi_list) %>%
+    filter(pval <= 0.05/nrow(bmi_all))
+  
+  
+  # remove any rows that are all NA
+  bmi_vals[bmi_vals == Inf] <- NA
+  
+  
+  # indices that are all NA values
+  allnaind <- bmi_vals %>%
+    select(-c("CHR", "POS")) %>%
+    apply(MARGIN=1, function(row_val) {
+      all(is.na(row_val))
+    } )
+  
+  bmi_vals <- bmi_vals[!allnaind, ] # exclude rows that are all NA
+  
+  
+  # extracting beta and se and saving it
+  beta_cols <- c("beta_AA", "beta_EA", "beta_EAS", "beta_HA", "beta_SA")
+  bmi_beta <- bmi_vals %>%
+    select(beta_cols)
+  
+  se_cols <- c("se_AA", "se_EA", "se_EAS", "se_HA", "se_SA")
+  bmi_se <- bmi_vals %>%
+    select(se_cols)
+  
+  
+  save(bmi_beta, file = "data/giant_bmi/bmi_beta.rda")
+  save(bmi_se, file = "data/giant_bmi/bmi_se.rda")
+  
+  
+}
+```
+
+
+## BMI Graphs
+Now we get a better look at the BMI through graphical representations.
+
+```{r include = FALSE}
+source(file = "data/giant_replicable.R")
+```
+
+
+```{r include = FALSE}
+if (file.exists(file = "data/giant_bmi/bmi_prp.rda") &&
+    file.exists(file = "data/giant_bmi/bmi_prp_pval.rda") &&
+    file.exists(file = "data/giant_bmi/bmi_mamba.rda")) {
+  
+  load(file = "data/giant_bmi/bmi_prp.rda")
+  load(file = "data/giant_bmi/bmi_prp_pval.rda")
+  load(file = "data/giant_bmi/bmi_mamba.rda")
+  
+} else {
+  
+  giant_replicable(beta = bmi_beta,
+                   se = bmi_se,
+                   prp_file = "data/giant_bmi/bmi_prp.rda",
+                   prp_pval_file = "data/giant_bmi/bmi_prp_pval.rda",
+                   mamba_data_file = "data/giant_bmi/bmi_mamba.rda")
+  
+  load(file = "data/giant_bmi/bmi_prp.rda")
+  load(file = "data/giant_bmi/bmi_prp_pval.rda")
+  load(file = "data/giant_bmi/bmi_mamba.rda")
+  
+}
+
+```
+
+We take a look at our PPR and PRP values. The histogram of our PPR values for BMI is given below.
+
+```{r echo = FALSE, message = FALSE}
+# from MAMBA
+bmi_ppr_val <- as.data.frame(mamba_data$ppr)
+ggplot(data = bmi_ppr_val, aes(x = mamba_data$ppr)) +
+  geom_histogram() +
+  xlab("MAMBA PPR Values")
+```
+
+In contrast, here is our histogram of PRP values.
+
+```{r echo = FALSE, message = FALSE}
+# from PRP
+bmi_prp_pval <- as.data.frame(post_prp_data_pval) %>%
+  rename("prp_pval" = "post_prp_data_pval")
+
+ggplot(data = bmi_prp_pval, aes(x = prp_pval)) +
+  geom_histogram() +
+  xlab("PRP Values")
+```
+
+
+\newpage
+# Height
+Next we look at height.
+
+```{r include = FALSE}
+# loading in cleaned data, or if it doesn't exist then cleaning it now
+if (file.exists(file = "data/giant_height/height_beta.rda") &&
+    file.exists(file = "data/giant_height/height_se.rda")) {
+  
+  load(file = "data/giant_height/height_beta.rda")
+  load(file = "data/giant_height/height_se.rda")
+  
+} else {
+  
+  # height datasets
+  height_all <- get_val(file = "data/giant_height/height_All_add_SV.txt",
+                        old_col = c("beta", "se", "Pvalue"),
+                        new_col = c("beta_all", "se_all", "pval"))
+  height_AA <- get_val(file = "data/giant_height/height_AA_add_SV.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_AA", "se_AA"))
+  height_EA <- get_val(file = "data/giant_height/height_EA_add_SV.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_EA", "se_EA"))
+  height_EAS <- get_val(file = "data/giant_height/height_EAS_add_SV.txt",
+                        old_col = c("beta", "se"),
+                        new_col = c("beta_EAS", "se_EAS"))
+  height_HA <- get_val(file = "data/giant_height/height_HA_add_SV.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_HA", "se_HA"))
+  height_SA <- get_val(file = "data/giant_height/height_SA_add_SV.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_SA", "se_SA"))
+  
+  
+  # put all values together
+  height_list <- list(height_AA, height_EA, height_EAS, height_HA, height_SA, height_all)
+  
+  
+  # merging data and dropping chr and pos columns
+  height_vals <- Reduce(function(df1, df2) {
+    merge(x = df1, y = df2, by = c("CHR", "POS"), all = TRUE)
+  },
+  height_list) %>%
+    filter(pval <= 0.05/nrow(height_all))
+  
+  
+  # remove any rows that are all NA
+  height_vals[height_vals == Inf] <- NA
+  
+  
+  # indices that are all NA values
+  allnaind <- height_vals %>%
+    select(-c("CHR", "POS")) %>%
+    apply(MARGIN=1, function(row_val) {
+      all(is.na(row_val))
+    } )
+  
+  height_vals <- height_vals[!allnaind, ] # exclude rows that are all NA
+  
+  
+  # extracting beta and se and saving it
+  beta_cols <- c("beta_AA", "beta_EA", "beta_EAS", "beta_HA", "beta_SA")
+  height_beta <- height_vals %>%
+    select(beta_cols)
+  
+  se_cols <- c("se_AA", "se_EA", "se_EAS", "se_HA", "se_SA")
+  height_se <- height_vals %>%
+    select(se_cols)
+  
+  
+  save(height_beta, file = "data/giant_height/height_beta.rda")
+  save(height_se, file = "data/giant_height/height_se.rda")  
+  
+}
+```
+
+```{r include = FALSE}
+if (file.exists(file = "data/giant_height/height_prp.rda") &&
+    file.exists(file = "data/giant_height/height_prp_val.rda") &&
+    file.exists(file = "data/giant_height/height_mamba.rda")) {
+  
+  load(file = "data/giant_height/height_prp.rda")
+  load(file = "data/giant_height/height_prp_val.rda")
+  load(file = "data/giant_height/height_mamba.rda")
+  
+} else {
+  
+  giant_replicable(beta = height_beta,
+                   se = height_se,
+                   prp_file = "data/giant_height/height_prp.rda",
+                   prp_pval_file = "data/giant_height/height_prp_val.rda",
+                   mamba_data_file = "data/giant_height/height_mamba.rda")
+  
+  load(file = "data/giant_height/height_prp.rda")
+  load(file = "data/giant_height/height_prp_val.rda")
+  load(file = "data/giant_height/height_mamba.rda")
+  
+}
+
+
+```
+
+We take a look at our PPR and PRP values. The histogram of our PPR values is given below.
+
+```{r echo = FALSE, message = FALSE}
+# from MAMBA
+height_ppr_val <- as.data.frame(mamba_data$ppr)
+ggplot(data = height_ppr_val, aes(x = mamba_data$ppr)) +
+  geom_histogram() +
+  xlab("MAMBA PPR Values")
+```
+
+In contrast, we have our histogram for PRP values.
+
+```{r echo = FALSE, message = FALSE}
+# from PRP
+height_prp_pval <- as.data.frame(post_prp_data_pval) %>%
+  rename("prp_pval" = "post_prp_data_pval")
+
+ggplot(data = height_prp_pval, aes(x = prp_pval)) +
+  geom_histogram() +
+  xlab("PRP Values")
+```
+
