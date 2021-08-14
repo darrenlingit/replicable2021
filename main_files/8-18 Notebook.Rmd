@@ -90,7 +90,11 @@ ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
   ggtitle("Distribution of PPR, SNPs With Outliers") +
   xlab("PPR") +
   xlim(0, 0.1)
+
+out_mamba_sig_count <- sum(out_ppr<=0.05)
 ```
+
+With outliers, there are around `r out_mamba_sig_count` SNPS with PPR values less than or equal to 0.05 (our significant SNPs).
 
 In contrast, this is what the distribution of our PRPs for outlier SNPs looks like. Keep in mind the differently scaled x-axis.
 ```{r warning = FALSE}
@@ -98,7 +102,11 @@ ggplot(data = as.data.frame(out_prp), aes(out_prp)) +
   geom_histogram(binwidth = 0.001) +
   ggtitle("Distribution of PRP, SNPs With Outliers") +
   xlab("PRP")
+
+out_prp_sig_count <- sum(out_ppr<=0.05)
 ```
+
+With outliers, there are around `r out_prp_sig_count` SNPS with PPR values less than or equal to 0.05.
 
 
 For our SNPs **without outliers**, the PRP distribution is given in the following histogram.
@@ -117,7 +125,14 @@ ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
   ggtitle("Distribution of PPR, SNPs Without Outliers") +
   xlab("PPR") +
   xlim(0, 0.1)
+
+
+nout_mamba_sig_count <- sum(nonout_ppr<=0.05)
+total_mamba_sig <- out_mamba_sig_count + nout_mamba_sig_count
+
 ```
+The number of known nonoutlier SNPs with PPR values less than or equal to 0.05 is `r nout_mamba_sig_count`. The total number of SNPs with PPRs less than or equal to 0.05 using the MAMBA method is `r total_mamba_sig`.
+
 
 In contrast, this is what the distribution of our PRP values looks like.
 ```{r warning = FALSE}
@@ -125,7 +140,13 @@ ggplot(data = as.data.frame(nonout_prp), aes(nonout_prp)) +
   geom_histogram(binwidth = 0.001) +
   ggtitle("Distribution of PRP, SNPs Without Outliers") +
   xlab("PRP")
+
+nout_prp_sig_count <- sum(nonout_prp<=0.05)
+total_prp_sig <- out_prp_sig_count + nout_prp_sig_count
 ```
+
+The number of known nonoutlier SNPs with PPR values less than or equal to 0.05 is `r nout_mamba_sig_count`. The total number of SNPs with PPRs less than or equal to 0.05 using the MAMBA method is `r total_prp_sig`. Recall that here, our nonoutlier study rate is 0.975.
+
 
 \newpage
 # Giant Consortium Studies
@@ -407,7 +428,7 @@ ggplot(data = height_prp_pval, aes(x = prp_pval)) +
 
 # Prior Checking
 
-```{r}
+```{r include = FALSE}
 # data cleaning
 if (file.exists(file = "data/giant_meta/meta_beta.rda") &&
     file.exists(file = "data/giant_meta/meta_se.rda")) {
@@ -465,27 +486,31 @@ if (file.exists(file = "data/giant_meta/meta_beta.rda") &&
 }
 ```
 
-```{r}
-# some testing
-meta_prior <- prior_prp(beta = as.double(meta_beta[3, ]),
-                        se = as.double(meta_se[3, ]))
-
-list_eff = lapply(seq_len(nrow(meta_beta)),
-                    function(x) {
-                      meta_beta <- as.double(meta_beta[x,])
-                      meta_beta <- meta_beta[is.na(meta_beta) == FALSE]
-                      #beta <- beta[is.infinite(beta) == FALSE]
-                    })
-
-list_se = lapply(seq_len(nrow(meta_se)),
-                   function(x) {
-                     meta_se <- as.double(meta_se[x,])
-                     meta_se <- meta_se[is.na(meta_se) == FALSE]
-                     #se <- se[is.infinite(se) == FALSE]
-                   })
-
-prior_prp_data = t(mapply(prior_prp,
-                          beta = list_eff,
-                          se = list_se))
+```{r include = FALSE}
+load("data/giant_meta/meta_prp_file.rda")
+load("data/giant_meta/meta_prp_pval.rda")
+load("data/giant_meta/meta_mamba.rda")
 ```
 
+## Meta Graphs
+We take a look at our PPR and PRP values. The histogram of our PPR values is given below.
+
+```{r echo = FALSE, message = FALSE}
+# from MAMBA
+meta_ppr_val <- as.data.frame(mamba_data$ppr)
+ggplot(data = meta_ppr_val, aes(x = mamba_data$ppr)) +
+  geom_histogram() +
+  xlab("Meta PPR Values")
+```
+
+In contrast, we have our histogram for PRP values.
+
+```{r echo = FALSE, message = FALSE}
+# from PRP
+meta_prp_pval <- as.data.frame(prior_prp_data_pval) %>%
+  rename("prp_pval" = "prior_prp_data_pval")
+
+ggplot(data = meta_prp_pval, aes(x = prp_pval)) +
+  geom_histogram() +
+  xlab("PRP Values")
+```
