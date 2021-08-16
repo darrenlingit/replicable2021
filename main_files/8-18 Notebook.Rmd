@@ -1,9 +1,9 @@
 ---
 title: "R Notebook, Week of 8/18"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
   html_notebook: default
 editor_options:
   chunk_output_type: console
@@ -35,7 +35,7 @@ library(dplyr)
 set.seed(2021)
 ```
 
-
+# MAMBA Simulations
 First we simulate data according to MAMBA and calculate the PPR values (from the MAMBA package) and the PRP values (from the PRP package). The job R files used for this are located in the code/data directories. The packages are calculated for all 50000 SNPS. Here, we'll look at the case where the nonoutlier study rate is 0.975.
 
 ```{r}
@@ -148,6 +148,72 @@ total_prp_sig <- out_prp_sig_count + nout_prp_sig_count
 The number of known nonoutlier SNPs with PPR values less than or equal to 0.05 is `r nout_mamba_sig_count`. The total number of SNPs with PPRs less than or equal to 0.05 using the MAMBA method is `r total_prp_sig`. Recall that here, our nonoutlier study rate is 0.975.
 
 
+## Inverse Variance Weighted
+We try an inverse variance weighted method to estimate the beta parameters and get z-score estimates.
+```{r include = FALSE}
+# some functions for finding the inverse variance weighted beta and se
+ivw_beta <- function(snp_beta, snp_se) {
+  # for one SNP
+  weights <- 1/(snp_se^2)
+  beta_val <- sum(snp_beta*weights)/sum(weights)
+  return(beta_val)
+  
+}
+
+ivw_beta_all <- function(snp_beta, snp_se) {
+  # for matrix of SNPs
+  beta_vals <- sapply(1:nrow(snp_beta),
+                      function(row) {
+                        ivw_beta(snp_beta[row, ], snp_se[row, ])
+                      } )
+  return(beta_vals)
+}
+
+ivw_se <- function(snp_se) {
+  # for one SNP
+  weights <- 1/(snp_se^2)
+  sum_weights_inv <- sum(1/weights)
+  beta_est_se <- sqrt(sum_weights_inv)
+  return(beta_est_se)
+}
+
+ivw_se_all <- function(snp_se) {
+  # for matrix of SNPs
+  ivw_se_vals <- apply(snp_se,
+                       MARGIN=1,
+                       FUN = ivw_se)
+  return(ivw_se_vals)
+}
+```
+
+```{r include = FALSE}
+# beta and se^2 values from mamba simulated data
+beta <- mamba_data$betajk
+se2 <- mamba_data$sjk2
+se <- sqrt(se2)
+
+ivw_beta_val <- ivw_beta_all(snp_beta = beta,
+                               snp_se = se)
+ivw_se_val <- ivw_se_all(snp_se = se)
+
+ivw_z_scores <- ivw_beta_val/ivw_se_val
+
+ivw_df <- data.frame(ivw_beta_val, ivw_se_val, ivw_z_scores) %>%
+  rename(beta = ivw_beta_val,
+         se = ivw_se_val,
+         zscore = ivw_z_scores)
+```
+
+Below, we see the distribution of z-scores from inverse variance weighting.
+```{r}
+ggplot(ivw_df, aes(x = zscore)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of Z-Scores from Inverse Variance Weighting") +
+  xlab("Z-Scores")
+  
+```
+
+
 \newpage
 # Giant Consortium Studies
 ```{r include = FALSE}
@@ -238,12 +304,14 @@ if (file.exists(file = "data/giant_bmi/bmi_beta.rda") &&
   save(bmi_beta, file = "data/giant_bmi/bmi_beta.rda")
   save(bmi_se, file = "data/giant_bmi/bmi_se.rda")
   
+  load(file = "data/giant_bmi/bmi_beta.rda")
+  load(file = "data/giant_bmi/bmi_se.rda")
   
 }
 ```
 
 
-## BMI Graphs
+### BMI Graphs
 Now we get a better look at the BMI through graphical representations.
 
 ```{r include = FALSE}
@@ -282,7 +350,7 @@ We take a look at our PPR and PRP values. The histogram of our PPR values for BM
 # from MAMBA
 bmi_ppr_val <- as.data.frame(mamba_data$ppr)
 ggplot(data = bmi_ppr_val, aes(x = mamba_data$ppr)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 0.01) +
   xlab("MAMBA PPR Values")
 ```
 
@@ -294,7 +362,7 @@ bmi_prp_pval <- as.data.frame(post_prp_data_pval) %>%
   rename("prp_pval" = "post_prp_data_pval")
 
 ggplot(data = bmi_prp_pval, aes(x = prp_pval)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 0.01) +
   xlab("PRP Values")
 ```
 
@@ -402,7 +470,7 @@ if (file.exists(file = "data/giant_height/height_prp.rda") &&
 
 ```
 
-## Height Graphs
+### Height Graphs
 We take a look at our PPR and PRP values. The histogram of our PPR values is given below.
 
 ```{r echo = FALSE, message = FALSE}
