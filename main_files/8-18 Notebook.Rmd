@@ -1,9 +1,11 @@
 ---
 title: "R Notebook, Week of 8/18"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+    toc: true
+  pdf_document:
+    toc: true
   html_notebook: default
 editor_options:
   chunk_output_type: console
@@ -16,7 +18,7 @@ knitr::opts_chunk$set(
 ```
 
 
-
+\newpage
 ```{r include = FALSE}
 # libraries and other things
 library(PRP)
@@ -58,7 +60,6 @@ no_out_rows_ind <-which(rowSums(out_studies) == 10) # indices of rows w/o outlie
 Then we load in the data containing the PRPs (from PRP package) for each SNP.
 ```{r}
 # loading PRP data
-
 load(file = "data/prp_data/post_prp_data_pval_p975.rda") # post_prp_data_pval
 
 ```
@@ -75,6 +76,8 @@ out_prp <- post_prp_data_pval[out_rows_ind]
 nonout_prp <- post_prp_data_pval[no_out_rows_ind]
 ```
 
+\newpage
+## SNPs With Outliers
 For our SNPs **with outliers**, the distribution of our PPRs looks as follows:
 ```{r warning = FALSE}
 ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
@@ -83,6 +86,7 @@ ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
   xlab("PPR")
 ```
 
+\newpage
 Rescaling the graph by ignoring some outliers, we get the histogram below.
 ```{r warning = FALSE}
 ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
@@ -90,25 +94,31 @@ ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
   ggtitle("Distribution of PPR, SNPs With Outliers") +
   xlab("PPR") +
   xlim(0, 0.1)
+```
 
+```{r include = FALSE}
 out_mamba_sig_count <- sum(out_ppr<=0.05)
 ```
 
 With outliers, there are around `r out_mamba_sig_count` SNPS with PPR values less than or equal to 0.05 (our significant SNPs).
 
+\newpage
 In contrast, this is what the distribution of our PRPs for outlier SNPs looks like. Keep in mind the differently scaled x-axis.
 ```{r warning = FALSE}
 ggplot(data = as.data.frame(out_prp), aes(out_prp)) +
   geom_histogram(binwidth = 0.001) +
   ggtitle("Distribution of PRP, SNPs With Outliers") +
   xlab("PRP")
+```
 
+```{r include = FALSE}
 out_prp_sig_count <- sum(out_ppr<=0.05)
 ```
 
 With outliers, there are around `r out_prp_sig_count` SNPS with PPR values less than or equal to 0.05.
 
-
+\newpage
+## SNPs Without Outliers
 For our SNPs **without outliers**, the PRP distribution is given in the following histogram.
 
 ```{r warning = FALSE}
@@ -118,6 +128,7 @@ ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
   xlab("PPR")
 ```
 
+\newpage
 Like before, if we ignore extreme PPR values, our histogram looks different.
 ```{r warning = FALSE}
 ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
@@ -125,29 +136,31 @@ ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
   ggtitle("Distribution of PPR, SNPs Without Outliers") +
   xlab("PPR") +
   xlim(0, 0.1)
+```
 
-
+```{r include = FALSE}
 nout_mamba_sig_count <- sum(nonout_ppr<=0.05)
 total_mamba_sig <- out_mamba_sig_count + nout_mamba_sig_count
-
 ```
 The number of known nonoutlier SNPs with PPR values less than or equal to 0.05 is `r nout_mamba_sig_count`. The total number of SNPs with PPRs less than or equal to 0.05 using the MAMBA method is `r total_mamba_sig`.
 
-
+\newpage
 In contrast, this is what the distribution of our PRP values looks like.
 ```{r warning = FALSE}
 ggplot(data = as.data.frame(nonout_prp), aes(nonout_prp)) +
   geom_histogram(binwidth = 0.001) +
   ggtitle("Distribution of PRP, SNPs Without Outliers") +
   xlab("PRP")
+```
 
+```{r include = FALSE}
 nout_prp_sig_count <- sum(nonout_prp<=0.05)
 total_prp_sig <- out_prp_sig_count + nout_prp_sig_count
 ```
 
 The number of known nonoutlier SNPs with PPR values less than or equal to 0.05 is `r nout_mamba_sig_count`. The total number of SNPs with PPRs less than or equal to 0.05 using the MAMBA method is `r total_prp_sig`. Recall that here, our nonoutlier study rate is 0.975.
 
-
+\newpage
 ## Inverse Variance Weighted
 We try an inverse variance weighted method to estimate the beta parameters and get z-score estimates.
 ```{r include = FALSE}
@@ -202,6 +215,11 @@ ivw_df <- data.frame(ivw_beta_val, ivw_se_val, ivw_z_scores) %>%
   rename(beta = ivw_beta_val,
          se = ivw_se_val,
          zscore = ivw_z_scores)
+```
+
+Below is a snippet of the data frame containing our inverse varaince weighted estimates and their respective z-scores.
+```{r echo = FALSE}
+pander(ivw_df[1:5, ])
 ```
 
 Below, we see the distribution of z-scores from inverse variance weighting.
