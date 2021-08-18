@@ -6,8 +6,6 @@ library(data.table)
 library(parallel)
 library(dplyr)
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-
 giant_replicable <- function(beta,
                              se,
                              prp_file,
@@ -18,14 +16,14 @@ giant_replicable <- function(beta,
   # list of effects and list of se
   # each item is a row from the data
   # leaves out NA values
-  list_eff = lapply(seq_len(nrow(beta)),
+  list_eff <- lapply(seq_len(nrow(beta)),
                     function(x) {
                       beta <- as.double(beta[x,])
                       beta <- beta[is.na(beta) == FALSE]
                       #beta <- beta[is.infinite(beta) == FALSE]
                     })
   
-  list_se = lapply(seq_len(nrow(se)),
+  list_se <- lapply(seq_len(nrow(se)),
                    function(x) {
                      se <- as.double(se[x,])
                      se <- se[is.na(se) == FALSE]
