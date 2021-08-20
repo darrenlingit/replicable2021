@@ -36,8 +36,167 @@ library(dplyr)
 
 set.seed(2021)
 ```
+# Background
 
 
+\newpage
+# MAMBA Simulations
+First we simulate data according to MAMBA and calculate the PPR values (from the MAMBA package) and the PRP values (from the PRP package). The job R files used for this are located in the code/data directories. The packages are calculated for all 50000 SNPS. Here, we'll look at the case where the nonoutlier study rate for the generated MAMBA simulations is 0.975.
+
+```{r}
+# loading mamba and prp data
+load(file = "data/mamba_data/sim_mamba_mod_p975.rda")
+load(file = "data/mamba_data/mamba_data_p975.rda")
+load(file = "data/prp_data/post_prp_data_pval_p975.rda") # post_prp_data_pval
+
+pprs <- sim_mod$ppr
+```
+
+
+We take the indices for the SNPs that have at least one outlier study. We use these indices to compare against the results of the MAMBA and PRP libraries.
+```{r}
+# indices for snps w/ and w/o outliers
+out_studies <- mamba_data$Ojk
+out_rows_ind <- which(rowSums(out_studies == 0) > 0) # indices of snps with outlier studies
+no_out_rows_ind <-which(rowSums(out_studies) == 10) # indices of rows w/o outliers
+
+# MAMBA pprs for snps w/ and w/o outliers
+out_ppr <- pprs[out_rows_ind]
+nonout_ppr <- pprs[no_out_rows_ind]
+
+# prps for snps w/ and w/o outliers
+out_prp <- post_prp_data_pval[out_rows_ind]
+nonout_prp <- post_prp_data_pval[no_out_rows_ind]
+```
+
+\newpage
+## SNPs With Outliers
+For our SNPs **with outliers**, the distribution of our PPR values from MAMBA is given below. We can see that our distribution is heavily right skewed, with most PPR values below 0.1.
+```{r, warning = FALSE}
+ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of PPR, SNPs With Outliers") +
+  xlab("PPR")
+```
+
+\newpage
+Rescaling the graph by ignoring some outliers, we get the histogram below. We can see it is still heavily right skewed.
+```{r, warning = FALSE}
+ggplot(data = as.data.frame(out_ppr), aes(out_ppr)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of PPR, SNPs With Outliers") +
+  xlab("PPR") +
+  xlim(0, 0.1)
+```
+
+```{r, include = FALSE}
+out_mamba_sig_count <- sum(out_ppr<=0.05)
+out_mamba_nonsig_count <- length(out_ppr) - out_mamba_sig_count
+```
+
+With outliers, there are around `r out_mamba_sig_count` SNPS with PPR values less than or equal to 0.05 (our significant SNPs).
+
+\newpage
+In contrast, this is what the distribution of our PRPs for outlier SNPs looks like. Keep in mind the differently scaled x-axis.
+```{r, warning = FALSE}
+ggplot(data = as.data.frame(out_prp), aes(out_prp)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of PRP, SNPs With Outliers") +
+  xlab("PRP")
+```
+
+```{r, include = FALSE}
+out_prp_sig_count <- sum(out_prp<=0.05)
+out_prp_nonsig_count <- length(out_prp) - out_prp_sig_count
+```
+
+With outliers, there are around `r out_prp_sig_count` SNPS with PPR values less than or equal to 0.05.
+
+
+\newpage
+## SNPs Without Outliers
+For our SNPs **without outliers**, the PRP distribution is given in the following histogram.
+
+```{r, warning = FALSE}
+ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
+  geom_histogram(binwidth = 0.0001) +
+  ggtitle("Distribution of PPR, SNPs Without Outliers") +
+  xlab("PPR")
+```
+
+\newpage
+Like before, if we ignore extreme PPR values, we can see that much of our PPR values are below 0.025.
+```{r, warning = FALSE}
+ggplot(data = as.data.frame(nonout_ppr), aes(nonout_ppr)) +
+  geom_histogram(binwidth = 0.0001) +
+  ggtitle("Distribution of PPR, SNPs Without Outliers") +
+  xlab("PPR") +
+  xlim(0, 0.1)
+```
+
+```{r, include = FALSE}
+nout_mamba_sig_count <- sum(nonout_ppr<=0.05)
+nout_mamba_nonsig_count <- length(nonout_ppr) - nout_mamba_sig_count
+total_mamba_sig <- out_mamba_sig_count + nout_mamba_sig_count
+
+```
+The number of known nonoutlier SNPs with PPR values less than or equal to 0.05 is `r nout_mamba_sig_count`. The total number of SNPs with PPRs less than or equal to 0.05 using the MAMBA method is `r total_mamba_sig`.
+
+\newpage
+In contrast, this is what the distribution of our PRP values looks like. We can see that it is much more uniform compared to the other graphs above.
+```{r, warning = FALSE}
+ggplot(data = as.data.frame(nonout_prp), aes(nonout_prp)) +
+  geom_histogram(binwidth = 0.001) +
+  ggtitle("Distribution of PRP, SNPs Without Outliers") +
+  xlab("PRP")
+```
+
+```{r, include = FALSE}
+nout_prp_sig_count <- sum(nonout_prp<=0.05)
+nout_prp_nonsig_count <- length(nonout_prp) - nout_prp_sig_count
+total_prp_sig <- out_prp_sig_count + nout_prp_sig_count
+```
+
+The number of known nonoutlier SNPs with PPR values less than or equal to 0.05 is `r nout_mamba_sig_count`. The total number of SNPs with PPRs less than or equal to 0.05 using the MAMBA method is `r total_prp_sig`. Recall that here, our nonoutlier study rate is 0.975.
+
+\newpage
+## SNP Counts
+A table of the number of **outlier** SNPs that are considered nonreplicable (a PRP or PPR value of 0.05 or less) is given below for each replicability method.
+```{r, echo = FALSE}
+out_df <- data.frame(c(out_mamba_sig_count, out_mamba_nonsig_count),
+                     c(out_prp_sig_count, out_prp_nonsig_count),
+                     row.names = c("Significant", "Non-Significant"))
+names(out_df) <- c("MAMBA Outlier", "PRP Outlier")
+
+pander(out_df)
+```
+
+For comparison, a table of the number of **nonoutlier** SNPs that are considered nonreplicable is below.
+```{r, echo = FALSE}
+nout_df <- data.frame(c(nout_mamba_sig_count, nout_mamba_nonsig_count),
+                      c(nout_prp_sig_count, nout_prp_nonsig_count),
+                      row.names = c("Significant", "Non-Significant"))
+names(nout_df) <- c("MAMBA Nonoutlier", "PRP Nonoutlier")
+combined_table <- cbind(out_df, nout_df)
+pander(nout_df)
+```
+
+
+A table of the total significant and nonsignicant SNPs is given below. For reference, there were a total of `r nrow(out_studies)` SNPs in the simulated data.
+```{r, echo = FALSE}
+total_mamba_nonsig <- nrow(out_studies) - total_mamba_sig
+total_prp_nonsig <- nrow(out_studies) - total_prp_sig
+
+total_df <- data.frame(c(total_mamba_sig, total_mamba_nonsig),
+                       c(total_prp_sig, total_prp_nonsig),
+                       row.names = c("Total Significant SNPs", "Total Nonsignificant SNPs"))
+
+names(total_df) <- c("MAMBA", "PRP")
+
+pander(total_df)
+```
+
+\newpage
 # Giant Consortium Studies
 ```{r Replicability Function, include = FALSE}
 source(file = "data/giant_replicable.R")
@@ -188,13 +347,13 @@ In contrast, we have our histogram for PRP values.
 height_prp_pval <- as.data.frame(post_prp_data_pval) %>%
   rename("PRP" = "post_prp_data_pval")
 
-ggplot(data = height_prp_pval, aes(x = prp_pval)) +
+ggplot(data = height_prp_pval, aes(x = PRP)) +
   geom_histogram() +
   xlab("PRP Values")
 ```
 
 
-```{r Height Gene Replicability Filter}
+```{r Height Gene Replicability Filter, include = FALSE}
 # combined data
 chrom_id <- height_beta %>%
   select("CHR", "POS")
@@ -205,8 +364,9 @@ height_rep_df <- cbind(chrom_id, height_ppr_val, height_prp_pval) %>%
   merge(y = height_se, by = c("CHR", "POS"), all = TRUE)
 
 # filter out values less than 0.05
+# SNPs with MAMBA PPR and PRP values less than 0.05
 sig_gene <- height_rep_df %>%
-  filter(MAMBA <= 0.05) %>%
-  filter(PRP <= 0.05)
+  filter(MAMBA <= 0.05, PRP <= 0.05)
 ```
+
 
