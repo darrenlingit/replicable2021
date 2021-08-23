@@ -340,7 +340,9 @@ ggplot(data = height_ppr_val, aes(x = mamba_data$ppr)) +
   xlab("MAMBA PPR Values")
 ```
 
-In contrast, we have our histogram for PRP values.
+We can see that the distribution of the PPR values is skewed left. Many values relatively high, with only a few that seem significant. 
+
+In contrast, our histogram for PRP values seems more evenly distributed, with a slight left right. More values are considered significant.
 
 ```{r, echo = FALSE, message = FALSE}
 # from PRP
@@ -369,4 +371,67 @@ sig_gene <- height_rep_df %>%
   filter(MAMBA <= 0.05, PRP <= 0.05)
 ```
 
+
+Now we'll look at how the effect sizes look between SNPs that MAMBA and PRP have deemed significant and not signficant. Below, we have a forest plot that shows the effect size estimates between various ethnic groups. We can see that generally, there is a lot of overlap in the effect sizes and their standard error ranges.
+
+```{r Forest Plot All SNPs, echo = FALSE}
+row_n <- 1
+
+df_beta <- t(height_rep_df[row_n, 5:9])
+row.names(df_beta) <- c("AA", "EA", "EAS", "HA", "SA")
+df_se <- t(height_rep_df[row_n, 10:14])
+
+chr_id <- height_rep_df[row_n, 1]
+pos_id <- height_rep_df[row_n, 2]
+snp_id <- paste("CHR: ", chr_id, ", ", "POS:", pos_id, sep = "")
+
+mamba_val <- height_rep_df[row_n, 3]
+prp_val <- height_rep_df[row_n, 4]
+rep_val <- paste("MAMBA PPR: ", round(mamba_val, digits = 3), ", ", "PRP: ", round(prp_val, digits = 3), sep = "")
+
+ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
+  geom_pointrange(aes(xmin = df_beta - df_se, xmax = df_beta + df_se)) +
+  ggtitle(snp_id, subtitle = rep_val) +
+  xlab("Beta") +
+  ylab("Ethnicity")
+```
+
+
+In contrast, below we have a SNP that the replicability packages have determined as not replicable. There is significantly less overlap.
+
+```{r Forest Plot Significant SNPs, echo = FALSE}
+row_n <- 1
+
+df_beta <- t(sig_gene[row_n, 5:9])
+row.names(df_beta) <- c("AA", "EA", "EAS", "HA", "SA")
+df_se <- t(sig_gene[row_n, 10:14])
+
+# SNP ID
+chr_id <- sig_gene[row_n, 1]
+pos_id <- sig_gene[row_n, 2]
+snp_id <- paste("CHR: ", chr_id, ", ", "POS: ", pos_id, sep = "")
+
+# PPR and PRP values
+mamba_val <- sig_gene[row_n, 3]
+prp_val <- sig_gene[row_n, 4]
+rep_val <- paste("MAMBA PPR: ", round(mamba_val, digits = 3), ", ", "PRP: ", round(prp_val, digits = 3), sep = "")
+
+ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
+  geom_pointrange(aes(xmin = df_beta - df_se, xmax = df_beta + df_se)) +
+  ggtitle(snp_id, subtitle = rep_val) +
+  xlab("Beta") +
+  ylab("Ethnicity")
+```
+
+
+
+
+```{r, include = FALSE}
+prp_mean <- mean(post_prp_data_pval)
+prp_se <- sd(post_prp_data_pval)/sqrt(length(post_prp_data_pval))
+mamba_mean <- mean(mamba_data$ppr)
+mamba_se <- sd(mamba_data$ppr)/sqrt(length(mamba_data$ppr))
+
+
+```
 
