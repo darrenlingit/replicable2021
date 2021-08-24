@@ -62,7 +62,7 @@ get_val <- function(file_name, old_col, new_col) {
 
 # Giant Consortium Height
 
-```{r, include = FALSE}
+```{r Height Data, include = FALSE}
 # loading in cleaned data, or if it doesn't exist then cleaning it now
 if (file.exists(file = "data/giant_height/height_beta.rda") &&
     file.exists(file = "data/giant_height/height_se.rda")) {
@@ -135,7 +135,7 @@ if (file.exists(file = "data/giant_height/height_beta.rda") &&
 }
 ```
 
-```{r, include = FALSE}
+```{r Height Data MAMBA and PRP, include = FALSE}
 if (file.exists(file = "data/giant_height/height_prp.rda") &&
     file.exists(file = "data/giant_height/height_prp_val.rda") &&
     file.exists(file = "data/giant_height/height_mamba.rda")) {
@@ -178,7 +178,6 @@ height_prp_pval <- as.data.frame(post_prp_data_pval) %>%
   rename("PRP" = "post_prp_data_pval")
 ```
 
-
 ```{r Height Gene Replicability Filter, include = FALSE}
 # combined data
 chrom_id <- height_beta %>%
@@ -197,30 +196,49 @@ sig_gene <- height_rep_df %>%
 # filter, keep nonsignificant SNPs
 non_sig_gene <- height_rep_df %>%
   filter(MAMBA > 0.05 | PRP > 0.05)
+
+# filter on only PRP 
+prp_sig_gene <- height_rep_df %>%
+  filter(PRP <= 0.05)
+
+prp_nonsig_gene <- height_rep_df %>%
+  filter(PRP > 0.05)
 ```
 
 
-We'll look at how the effect sizes look between SNPs that MAMBA and PRP have deemed significant and not signficant. Below, we have a forest plot that shows the effect size estimates between various ethnic groups. We can see that generally, there is a lot of overlap in the effect sizes and their standard error ranges.
-
-
-```{r, echo = FALSE}
-forest_plot_shiny <- function(snp, df) {
+```{r Forest Plot Function, include = FALSE}
+forest_plot <- function(snp,
+                        df,
+                        mamba_include = TRUE,
+                        title) {
   df_beta <- t(df[snp, 5:9])
   row.names(df_beta) <- c("AA", "EA", "EAS", "HA", "SA")
   df_se <- t(df[snp, 10:14])
   
   mamba_val <- df[snp, 3]
   prp_val <- df[snp, 4]
-  rep_val <- paste("MAMBA PPR: ", round(mamba_val, digits = 3), ", ", "PRP: ", round(prp_val, digits = 3), sep = "")
+  if (mamba_include == TRUE) {
+    
+    rep_val <- paste(snp, "; ", "MAMBA PPR: ", round(mamba_val, digits = 3), ", ", "PRP: ", round(prp_val, digits = 3), sep = "")
+    
+  } else if (mamba_include == FALSE) {
+    
+    rep_val <- paste(snp, "; ", "PRP: ", round(prp_val, digits = 3), sep = "")
+    
+  }
+  
+  
   
   ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
     geom_pointrange(aes(xmin = df_beta - df_se, xmax = df_beta + df_se)) +
-    ggtitle(snp, subtitle = rep_val) +
+    ggtitle(title, subtitle = rep_val) +
     xlab("Beta") +
     ylab("Ethnicity")
 }
 
+```
 
+```{r Renaming Rows, include = FALSE}
 # rename rows to SNPs
 # first for nonsignificant SNPs
 snp_list <- c()
@@ -234,7 +252,6 @@ for (i in 1:nrow(non_sig_gene)) {
 }
 row.names(non_sig_gene) <- snp_list
 
-
 # next to significant SNPs
 snp_list <- c()
 
@@ -246,9 +263,33 @@ for (i in 1:nrow(sig_gene)) {
   
 }
 row.names(sig_gene) <- snp_list
+
+
+# do the same for PRP
+snp_list <- c()
+for (i in 1:nrow(prp_nonsig_gene)) {
+  chr_id <- prp_nonsig_gene[i, 1]
+  pos_id <- prp_nonsig_gene[i, 2]
+  snp_id <- paste("CHR: ", chr_id, ", ", "POS: ", pos_id, sep = "")
+  snp_list <- c(snp_list, snp_id)
+}
+row.names(prp_nonsig_gene) <- snp_list
+
+
+snp_list <- c()
+for (i in 1:nrow(prp_sig_gene)) {
+  chr_id <- prp_sig_gene[i, 1]
+  pos_id <- prp_sig_gene[i, 2]
+  snp_id <- paste("CHR: ", chr_id, ", ", "POS: ", pos_id, sep = "")
+  snp_list <- c(snp_list, snp_id)
+}
+row.names(prp_sig_gene) <- snp_list
 ```
 
-```{r Forest Plot Nonsignificant, echo = FALSE}
+
+We'll look at how the effect sizes look between SNPs that MAMBA and PRP have deemed significant and not signficant. Below, we have a forest plot that shows the effect size estimates between various ethnic groups. We can see that generally, there is a lot of overlap in the effect sizes and their standard error ranges.
+
+```{r Forest Plot Replicable, echo = FALSE}
 ui <- fluidPage(
   
   inputPanel(
@@ -262,7 +303,9 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
-  output$nonsig_snp_plot = renderPlot(forest_plot_shiny(input$snp, non_sig_gene))
+  output$nonsig_snp_plot = renderPlot(forest_plot(input$snp,
+                                                        non_sig_gene,
+                                                        title = "Replicable SNP"))
 }
 
 
@@ -273,7 +316,7 @@ shinyApp(ui, server, options = list(height = 625))
 In contrast, below we have a SNP that the replicability packages have determined as not replicable. There is significantly less overlap between the estimated effect sizes and their standard error ranges for each ethnicity group.
 
 
-```{r Forest Plot Significant, echo = FALSE}
+```{r Forest Plot nonreplicable, echo = FALSE}
 ui <- fluidPage(
   
   inputPanel(
@@ -287,7 +330,9 @@ ui <- fluidPage(
 )
 
 server <- function(input, output) {
-  output$sig_snp_plot = renderPlot(forest_plot_shiny(input$snp, sig_gene))
+  output$sig_snp_plot = renderPlot(forest_plot(input$snp,
+                                                     sig_gene,
+                                                     title = "Nonreplicable SNP"))
 }
 
 
@@ -295,3 +340,55 @@ shinyApp(ui, server, options = list(height = 625))
 
 ```
 
+Since MAMBA seems to struggle with classifying some SNPs, we'll take a look at the SNPS that the PRP library determines as nonreplicable and replicable. Like before, we can see that in general replicable SNPs have more overlap than nonreplicable SNPs.
+
+```{r Forest Plot PRP Replicable, echo = FALSE}
+ui <- fluidPage(
+  
+  inputPanel(
+    selectInput(inputId = "snp", 
+                label = "SNP ID:",
+                choices = rownames(prp_nonsig_gene)
+    )
+   
+  ),
+   plotOutput("prp_nonsip_plot", height=500)
+)
+
+server <- function(input, output) {
+  output$prp_nonsip_plot = renderPlot(forest_plot(input$snp,
+                                                        non_sig_gene,
+                                                        mamba_include = FALSE,
+                                                        title = "PRP Replicable SNP"))
+}
+
+
+shinyApp(ui, server, options = list(height = 625))
+
+```
+
+
+```{r Forest Plot PRP Nonreplicable, echo = FALSE}
+ui <- fluidPage(
+  
+  inputPanel(
+    selectInput(inputId = "snp", 
+                label = "SNP ID:",
+                choices = rownames(prp_sig_gene)
+    )
+   
+  ),
+   plotOutput("prp_sig_plot", height=500)
+)
+
+server <- function(input, output) {
+  output$prp_sig_plot = renderPlot(forest_plot(input$snp,
+                                                     non_sig_gene,
+                                                     mamba_include = FALSE,
+                                                     title = "PRP Nonreplicable SNP"))
+}
+
+
+shinyApp(ui, server, options = list(height = 625))
+
+```

@@ -36,10 +36,7 @@ library(dplyr)
 
 set.seed(2021)
 ```
-# Background
 
-
-\newpage
 # MAMBA Simulations
 First we simulate data according to MAMBA and calculate the PPR values (from the MAMBA package) and the PRP values (from the PRP package). The job R files used for this are located in the code/data directories. The packages are calculated for all 50000 SNPS. Here, we'll look at the case where the nonoutlier study rate for the generated MAMBA simulations is 0.975.
 
@@ -218,9 +215,7 @@ get_val <- function(file_name, old_col, new_col) {
 }
 ```
 
-\newpage
 ## Height
-We only look at height for now.
 
 ```{r, include = FALSE}
 # loading in cleaned data, or if it doesn't exist then cleaning it now
@@ -340,9 +335,10 @@ ggplot(data = height_ppr_val, aes(x = mamba_data$ppr)) +
   xlab("MAMBA PPR Values")
 ```
 
-We can see that the distribution of the PPR values is skewed left. Many values relatively high, with only a few that seem significant. 
+We can see that the distribution of the PPR values is skewed left. Many values relatively high, with only a few that seem significant.
 
-In contrast, our histogram for PRP values seems more evenly distributed, with a slight left right. More values are considered significant.
+\newpage
+In contrast, our histogram for PRP values seems more evenly distributed, with a slight right skew More values are considered significant.
 
 ```{r, echo = FALSE, message = FALSE}
 # from PRP
@@ -353,7 +349,6 @@ ggplot(data = height_prp_pval, aes(x = PRP)) +
   geom_histogram() +
   xlab("PRP Values")
 ```
-
 
 ```{r Height Gene Replicability Filter, include = FALSE}
 # combined data
@@ -373,12 +368,19 @@ sig_gene <- height_rep_df %>%
 # filter, keep nonsignificant SNPs
 non_sig_gene <- height_rep_df %>%
   filter(MAMBA > 0.05 | PRP > 0.05)
+
+# filter on only PRP 
+prp_sig_gene <- height_rep_df %>%
+  filter(PRP <= 0.05)
+
+prp_nonsig_gene <- height_rep_df %>%
+  filter(PRP > 0.05)
 ```
 
-
+\newpage
 Now we'll look at how the effect sizes look between SNPs that MAMBA and PRP have deemed significant and not signficant. Below, we have a forest plot that shows the effect size estimates between various ethnic groups. We can see that generally, there is a lot of overlap in the effect sizes and their standard error ranges.
 
-```{r Forest Plot Nonsig SNPs, echo = FALSE}
+```{r Forest Plot Replicable SNPs, echo = FALSE}
 row_n <- 1
 
 df_beta <- t(non_sig_gene[row_n, 5:9])
@@ -400,8 +402,8 @@ ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
   ylab("Ethnicity")
 ```
 
-
-In contrast, below we have a SNP that the replicability packages have determined as not replicable. There is significantly less overlap between the estimated effect sizes and their standard error ranges for each ethnicity group.
+\newpage
+In contrast, below we have a SNP that the replicability packages have determined as not replicable. There is significantly less overlap between the estimated effect sizes and their standard error ranges for each ethnicity group. This generally matches what is expected from a nonreplicable SNP. 
 
 ```{r Forest Plot Significant SNPs, echo = FALSE}
 row_n <- 1
@@ -427,16 +429,79 @@ ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
   ylab("Ethnicity")
 ```
 
+\newpage
+Since MAMBA seems to struggle a bit in determining replicability in simulations, we'll look at PRP replicability determined SNPs to get an idea of how it determines replicability. Below is a graph of a SNP that is replicable according to the PRP library. Like before, we can see that there is a lot of overlap in the effect size estimate.
 
-A shiny app version of these plots is also provided that let's you compare different SNPs.
+```{r PRP Forest Plot Replicable SNPs, echo = FALSE}
+row_n <- 2
+
+df_beta <- t(prp_nonsig_gene[row_n, 5:9])
+row.names(df_beta) <- c("AA", "EA", "EAS", "HA", "SA")
+df_se <- t(prp_nonsig_gene[row_n, 10:14])
+
+chr_id <- prp_nonsig_gene[row_n, 1]
+pos_id <- prp_nonsig_gene[row_n, 2]
+snp_id <- paste("CHR: ", chr_id, ", ", "POS:", pos_id, sep = "")
+
+mamba_val <- prp_nonsig_gene[row_n, 3]
+prp_val <- prp_nonsig_gene[row_n, 4]
+rep_val <- paste("PRP: ", round(prp_val, digits = 3), sep = "")
+
+ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
+  geom_pointrange(aes(xmin = df_beta - df_se, xmax = df_beta + df_se)) +
+  ggtitle(snp_id, subtitle = rep_val) +
+  xlab("Beta") +
+  ylab("Ethnicity")
+```
+
+\newpage
+Similarly, the nonreplicable SNP has less overlap.
+
+```{r PRP Forest Plot Nonreplicable SNPs, echo = FALSE}
+row_n <- 1
+
+df_beta <- t(prp_sig_gene[row_n, 5:9])
+row.names(df_beta) <- c("AA", "EA", "EAS", "HA", "SA")
+df_se <- t(prp_sig_gene[row_n, 10:14])
+
+chr_id <- prp_sig_gene[row_n, 1]
+pos_id <- prp_sig_gene[row_n, 2]
+snp_id <- paste("CHR: ", chr_id, ", ", "POS:", pos_id, sep = "")
+
+mamba_val <- prp_sig_gene[row_n, 3]
+prp_val <- prp_sig_gene[row_n, 4]
+rep_val <- paste("PRP: ", round(prp_val, digits = 3), sep = "")
+
+ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
+  geom_pointrange(aes(xmin = df_beta - df_se, xmax = df_beta + df_se)) +
+  ggtitle(snp_id, subtitle = rep_val) +
+  xlab("Beta") +
+  ylab("Ethnicity")
+```
+
+
+A shiny app version of these plots is also provided that let's you compare different SNPs. It gives a better idea of how and why MAMBA and PRP classify each SNP's replicability.
 
 
 ```{r, include = FALSE}
-prp_mean <- mean(post_prp_data_pval)
-prp_se <- sd(post_prp_data_pval)/sqrt(length(post_prp_data_pval))
-mamba_mean <- mean(mamba_data$ppr)
-mamba_se <- sd(mamba_data$ppr)/sqrt(length(mamba_data$ppr))
-
-
+# prp_mean <- mean(post_prp_data_pval)
+# prp_se <- sd(post_prp_data_pval)/sqrt(length(post_prp_data_pval))
+# mamba_mean <- mean(mamba_data$ppr)
+# mamba_se <- sd(mamba_data$ppr)/sqrt(length(mamba_data$ppr))
 ```
 
+
+```{r IVW Functions, include = FALSE}
+# # just checking to see if this matches the stdi
+# source(file = "data/Inv_var_Weight.R")
+# 
+# height_beta_pre_ivw <- height_beta %>%
+#   select(-c("CHR", "POS"))
+# height_se_pre_ivw <- height_se %>%
+#   select(-c("CHR", "POS"))
+# 
+# ivw_height_beta <- ivw_beta_all(snp_beta = height_beta_pre_ivw,
+#                             snp_se = height_se_pre_ivw)
+# 
+# ivw_height_se <- ivw_se_all(snp_se = height_se_pre_ivw)
+```
