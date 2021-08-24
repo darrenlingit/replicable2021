@@ -1,10 +1,10 @@
 ---
 title: "R Notebook, Week of 8/18"
 output:
-  pdf_document:
-    toc: true
   html_document:
     df_print: paged
+    toc: true
+  pdf_document:
     toc: true
   html_notebook: default
 editor_options:
@@ -368,25 +368,29 @@ height_rep_df <- cbind(chrom_id, height_ppr_val, height_prp_pval) %>%
 # filter out values less than 0.05
 # SNPs with MAMBA PPR and PRP values less than 0.05
 sig_gene <- height_rep_df %>%
-  filter(MAMBA <= 0.05, PRP <= 0.05)
+  filter(MAMBA <= 0.05 & PRP <= 0.05)
+
+# filter, keep nonsignificant SNPs
+non_sig_gene <- height_rep_df %>%
+  filter(MAMBA > 0.05 | PRP > 0.05)
 ```
 
 
 Now we'll look at how the effect sizes look between SNPs that MAMBA and PRP have deemed significant and not signficant. Below, we have a forest plot that shows the effect size estimates between various ethnic groups. We can see that generally, there is a lot of overlap in the effect sizes and their standard error ranges.
 
-```{r Forest Plot All SNPs, echo = FALSE}
+```{r Forest Plot Nonsig SNPs, echo = FALSE}
 row_n <- 1
 
-df_beta <- t(height_rep_df[row_n, 5:9])
+df_beta <- t(non_sig_gene[row_n, 5:9])
 row.names(df_beta) <- c("AA", "EA", "EAS", "HA", "SA")
-df_se <- t(height_rep_df[row_n, 10:14])
+df_se <- t(non_sig_gene[row_n, 10:14])
 
-chr_id <- height_rep_df[row_n, 1]
-pos_id <- height_rep_df[row_n, 2]
+chr_id <- non_sig_gene[row_n, 1]
+pos_id <- non_sig_gene[row_n, 2]
 snp_id <- paste("CHR: ", chr_id, ", ", "POS:", pos_id, sep = "")
 
-mamba_val <- height_rep_df[row_n, 3]
-prp_val <- height_rep_df[row_n, 4]
+mamba_val <- non_sig_gene[row_n, 3]
+prp_val <- non_sig_gene[row_n, 4]
 rep_val <- paste("MAMBA PPR: ", round(mamba_val, digits = 3), ", ", "PRP: ", round(prp_val, digits = 3), sep = "")
 
 ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
@@ -397,7 +401,7 @@ ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
 ```
 
 
-In contrast, below we have a SNP that the replicability packages have determined as not replicable. There is significantly less overlap.
+In contrast, below we have a SNP that the replicability packages have determined as not replicable. There is significantly less overlap between the estimated effect sizes and their standard error ranges for each ethnicity group.
 
 ```{r Forest Plot Significant SNPs, echo = FALSE}
 row_n <- 1
@@ -424,6 +428,7 @@ ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
 ```
 
 
+A shiny app version of these plots is also provided that let's you compare different SNPs.
 
 
 ```{r, include = FALSE}

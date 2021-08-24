@@ -1,0 +1,297 @@
+---
+title: "R Notebook, Week of 8/18"
+output:
+  html_document:
+    df_print: paged
+    toc: true
+  pdf_document:
+    toc: true
+  html_notebook: default
+editor_options:
+  chunk_output_type: console
+runtime: shiny
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE
+)
+```
+
+```{r Libraries, include = FALSE}
+# libraries and other things
+library(PRP)
+library(rstudioapi)
+library(mamba)
+library(data.table)
+library(parallel)
+library(knitr)
+library(pander)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(shiny)
+
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+set.seed(2021)
+```
+
+This file is a supplement to the 8-25 .Rmd notebook. It provides forest plots for various SNPs.
+
+```{r Replicability Function, include = FALSE}
+source(file = "data/giant_replicable.R")
+source(file = "data/Inv_Var_Weight.R")
+```
+
+```{r Reading Data Function, include = FALSE}
+get_val <- function(file_name, old_col, new_col) {
+  # read in files and get values
+  table_select <- read.table(file = file_name, header = TRUE) %>%
+    select(c("CHR", "POS", old_col)) 
+  
+  for (i in 1:length(old_col)) {
+    table_select <- table_select %>%
+      rename(!!new_col[i] := !!old_col[i])
+  }
+  
+  return(table_select)
+}
+```
+
+
+# Giant Consortium Height
+
+```{r, include = FALSE}
+# loading in cleaned data, or if it doesn't exist then cleaning it now
+if (file.exists(file = "data/giant_height/height_beta.rda") &&
+    file.exists(file = "data/giant_height/height_se.rda")) {
+  
+  load(file = "data/giant_height/height_beta.rda")
+  load(file = "data/giant_height/height_se.rda")
+  
+} else {
+  
+  # height datasets
+  height_all <- get_val(file = "data/giant_height/height_All_add_SV.txt",
+                        old_col = c("beta", "se", "Pvalue"),
+                        new_col = c("beta_all", "se_all", "pval"))
+  height_AA <- get_val(file = "data/giant_height/height_AA_add_SV.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_AA", "se_AA"))
+  height_EA <- get_val(file = "data/giant_height/height_EA_add_SV.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_EA", "se_EA"))
+  height_EAS <- get_val(file = "data/giant_height/height_EAS_add_SV.txt",
+                        old_col = c("beta", "se"),
+                        new_col = c("beta_EAS", "se_EAS"))
+  height_HA <- get_val(file = "data/giant_height/height_HA_add_SV.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_HA", "se_HA"))
+  height_SA <- get_val(file = "data/giant_height/height_SA_add_SV.txt",
+                       old_col = c("beta", "se"),
+                       new_col = c("beta_SA", "se_SA"))
+  
+  
+  # put all values together
+  height_list <- list(height_AA, height_EA, height_EAS, height_HA, height_SA, height_all)
+  
+  
+  # merging data and dropping chr and pos columns
+  height_vals <- Reduce(function(df1, df2) {
+    merge(x = df1, y = df2, by = c("CHR", "POS"), all = TRUE)
+  },
+  height_list) %>%
+    filter(pval <= 0.05/nrow(height_all))
+  
+  
+  # remove any rows that are all NA
+  height_vals[height_vals == Inf] <- NA
+  
+  
+  # indices that are all NA values
+  allnaind <- height_vals %>%
+    select(-c("CHR", "POS", "beta_all", "se_all", "pval")) %>%
+    apply(MARGIN=1, function(row_val) {
+      all(is.na(row_val))
+    } )
+  
+  height_vals <- height_vals[!allnaind, ] # exclude rows that are all NA
+  
+  
+  # extracting beta and se and saving it
+  beta_cols <- c("beta_AA", "beta_EA", "beta_EAS", "beta_HA", "beta_SA")
+  height_beta <- height_vals %>%
+    select("CHR", "POS", beta_cols)
+  
+  se_cols <- c("se_AA", "se_EA", "se_EAS", "se_HA", "se_SA")
+  height_se <- height_vals %>%
+    select("CHR", "POS", se_cols)
+  
+  
+  save(height_beta, file = "data/giant_height/height_beta.rda")
+  save(height_se, file = "data/giant_height/height_se.rda")  
+  
+}
+```
+
+```{r, include = FALSE}
+if (file.exists(file = "data/giant_height/height_prp.rda") &&
+    file.exists(file = "data/giant_height/height_prp_val.rda") &&
+    file.exists(file = "data/giant_height/height_mamba.rda")) {
+  
+  load(file = "data/giant_height/height_prp.rda")
+  load(file = "data/giant_height/height_prp_val.rda")
+  load(file = "data/giant_height/height_mamba.rda")
+  
+} else {
+  beta_cols <- c("beta_AA", "beta_EA", "beta_EAS", "beta_HA", "beta_SA")
+  height_beta_val <- height_beta %>%
+    select(beta_cols)
+  
+  se_cols <- c("se_AA", "se_EA", "se_EAS", "se_HA", "se_SA")
+  height_se_val <- height_vals %>%
+    select(se_cols)
+  
+  giant_replicable(beta = height_beta_val,
+                   se = height_se_val,
+                   prp_file = "data/giant_height/height_prp.rda",
+                   prp_pval_file = "data/giant_height/height_prp_val.rda",
+                   mamba_data_file = "data/giant_height/height_mamba.rda")
+  
+  load(file = "data/giant_height/height_prp.rda")
+  load(file = "data/giant_height/height_prp_val.rda")
+  load(file = "data/giant_height/height_mamba.rda")
+  
+}
+
+
+```
+
+```{r Replicability Data, include = FALSE}
+# MAMBA
+height_ppr_val <- as.data.frame(mamba_data$ppr) %>%
+  rename("MAMBA" = "mamba_data$ppr")
+
+# PRP
+height_prp_pval <- as.data.frame(post_prp_data_pval) %>%
+  rename("PRP" = "post_prp_data_pval")
+```
+
+
+```{r Height Gene Replicability Filter, include = FALSE}
+# combined data
+chrom_id <- height_beta %>%
+  select("CHR", "POS")
+
+# merge all data back together (IDs, )
+height_rep_df <- cbind(chrom_id, height_ppr_val, height_prp_pval) %>%
+  merge(y = height_beta, by = c("CHR", "POS"), all = TRUE) %>%
+  merge(y = height_se, by = c("CHR", "POS"), all = TRUE)
+
+# filter out values less than 0.05
+# SNPs with MAMBA PPR and PRP values less than 0.05
+sig_gene <- height_rep_df %>%
+  filter(MAMBA <= 0.05, PRP <= 0.05)
+
+# filter, keep nonsignificant SNPs
+non_sig_gene <- height_rep_df %>%
+  filter(MAMBA > 0.05 | PRP > 0.05)
+```
+
+
+We'll look at how the effect sizes look between SNPs that MAMBA and PRP have deemed significant and not signficant. Below, we have a forest plot that shows the effect size estimates between various ethnic groups. We can see that generally, there is a lot of overlap in the effect sizes and their standard error ranges.
+
+
+```{r, echo = FALSE}
+forest_plot_shiny <- function(snp, df) {
+  df_beta <- t(df[snp, 5:9])
+  row.names(df_beta) <- c("AA", "EA", "EAS", "HA", "SA")
+  df_se <- t(df[snp, 10:14])
+  
+  mamba_val <- df[snp, 3]
+  prp_val <- df[snp, 4]
+  rep_val <- paste("MAMBA PPR: ", round(mamba_val, digits = 3), ", ", "PRP: ", round(prp_val, digits = 3), sep = "")
+  
+  ggplot(as.data.frame(df_beta), aes(x = df_beta, y = row.names(df_beta))) +
+    geom_pointrange(aes(xmin = df_beta - df_se, xmax = df_beta + df_se)) +
+    ggtitle(snp, subtitle = rep_val) +
+    xlab("Beta") +
+    ylab("Ethnicity")
+}
+
+
+# rename rows to SNPs
+# first for nonsignificant SNPs
+snp_list <- c()
+
+for (i in 1:nrow(non_sig_gene)) {
+  chr_id <- non_sig_gene[i, 1]
+  pos_id <- non_sig_gene[i, 2]
+  snp_id <- paste("CHR: ", chr_id, ", ", "POS: ", pos_id, sep = "")
+  snp_list <- c(snp_list, snp_id)
+  
+}
+row.names(non_sig_gene) <- snp_list
+
+
+# next to significant SNPs
+snp_list <- c()
+
+for (i in 1:nrow(sig_gene)) {
+  chr_id <- sig_gene[i, 1]
+  pos_id <- sig_gene[i, 2]
+  snp_id <- paste("CHR: ", chr_id, ", ", "POS: ", pos_id, sep = "")
+  snp_list <- c(snp_list, snp_id)
+  
+}
+row.names(sig_gene) <- snp_list
+```
+
+```{r Forest Plot Nonsignificant, echo = FALSE}
+ui <- fluidPage(
+  
+  inputPanel(
+    selectInput(inputId = "snp", 
+                label = "SNP ID:",
+                choices = rownames(non_sig_gene)
+    )
+   
+  ),
+   plotOutput("nonsig_snp_plot", height=500)
+)
+
+server <- function(input, output) {
+  output$nonsig_snp_plot = renderPlot(forest_plot_shiny(input$snp, non_sig_gene))
+}
+
+
+shinyApp(ui, server, options = list(height = 625))
+
+```
+
+In contrast, below we have a SNP that the replicability packages have determined as not replicable. There is significantly less overlap between the estimated effect sizes and their standard error ranges for each ethnicity group.
+
+
+```{r Forest Plot Significant, echo = FALSE}
+ui <- fluidPage(
+  
+  inputPanel(
+    selectInput(inputId = "snp", 
+                label = "SNP ID:",
+                choices = rownames(sig_gene)
+    )
+   
+  ),
+   plotOutput("sig_snp_plot", height=500)
+)
+
+server <- function(input, output) {
+  output$sig_snp_plot = renderPlot(forest_plot_shiny(input$snp, sig_gene))
+}
+
+
+shinyApp(ui, server, options = list(height = 625))
+
+```
+
