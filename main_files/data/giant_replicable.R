@@ -6,11 +6,11 @@ library(data.table)
 library(parallel)
 library(dplyr)
 
-giant_replicable <- function(beta,
-                             se,
-                             prp_file,
-                             prp_pval_file,
-                             mamba_data_file,
+giant_replicable <- function(beta, # array of beta values, list datatype
+                             se, # array of se values with columns matching beta values
+                             prp_file, # file location to save prp data
+                             prp_pval_file, # file location to sve prp pvalues
+                             mamba_data_file, # file location to save mamba data
                              prior_post = "posterior") {
   
   # list of effects and list of se
