@@ -1,10 +1,11 @@
 ---
 title: "R Notebook, Week of 8/18"
+author: "Darren Lin"
 output:
+  pdf_document:
+    toc: true
   html_document:
     df_print: paged
-    toc: true
-  pdf_document:
     toc: true
   html_notebook: default
 editor_options:
