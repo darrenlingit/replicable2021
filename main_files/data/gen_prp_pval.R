@@ -22,6 +22,7 @@ mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
                            text_rate,
                            ".rda",
                            sep = "")
+  # simulated mamba data file name
   sim_mamba_mod_file <- paste("mamba_data/sim_mamba_mod_p",
                               text_rate,
                               ".rda",
@@ -73,7 +74,7 @@ mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
   }
   
   
-  # list of effects and list of se
+  # list of effects and list of standard errors
   # each item is a row from the data
   list_eff = lapply(seq_len(nrow(snpeffect)),
                     function(x) {
@@ -101,7 +102,7 @@ mamba_data_ppr_and_prp <- function(noutlier_rate = 0.975) {
   
   
   
-  # saving functions
+  # saving data to respective folders
   save(post_prp_data, file = post_prp_data_file)
   save(post_prp_data_pval, file = post_prp_data_pval_file)
   #write.csv(post_prp_data_ch, post_prp_data_ch_file, row.names = FALSE)

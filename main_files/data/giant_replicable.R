@@ -71,7 +71,7 @@ giant_replicable <- function(beta, # array of beta values, list datatype
   print("Now applying MAMBA library.")
   mamba_data <- mamba(beta, se^2)
   
-  # saving mamba data
+  # saving mamba data to file
   save(mamba_data, file = mamba_data_file)
   
 }
